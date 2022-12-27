@@ -97,8 +97,15 @@ int kernel_main()
 	init_vfs();		//added by mingxuan 2020-10-30
 	init_fs();
 	init_fs_fat();	//added by mingxuan 2019-5-17
-	init_ram_fs();
+	init_ram_fs();	// adder by jf
 	// init_vfs();	//added by mingxuan 2019-5-17	//deleted by mingxuan 2020-10-30
+
+	/*************************************************************************
+	*运行测试ramfs
+	**************************************************************************/
+	disable_int();
+	test_ramfs();	//added by xu
+	enable_int();
 
 	/*************************************************************************
 	*第一个进程开始启动执行

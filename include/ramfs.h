@@ -37,4 +37,6 @@ int rf_createDir(const char *dirname);
 int rf_openDir(const char *dirname);
 int rf_delete(const char *filename);
 int rf_deleteDir(const char *dirname);
+
+int test_ramfs();
 #endif

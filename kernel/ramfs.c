@@ -314,3 +314,41 @@ int rf_deleteDir(const char *dirname)
 {
 	return OK;
 }
+
+/*
+* write by xu
+* here is some problems in my test
+* it's tested in kernel mode
+*/
+// 编写测试程序
+int test_ramfs()
+{
+	// create a file on ramfs
+	// rf_create("/test.txt");
+	if(rf_create("/test.txt") == -1){
+		kprintf("create file failed!\n");
+		return -1;
+	}
+	// write a string to the file
+	int fd = rf_open("/test.txt", O_RDWR);
+	if(fd == -1){
+		kprintf("open file failed!\n");
+		return -1;
+	}
+	char *buf = "hello world!";
+	if(rf_write(fd, buf, strlen(buf)) == -1){
+		kprintf("write file failed!\n");
+		return -1;
+	}
+	// read the file
+	char buf2[100];
+	if(rf_read(fd, buf2, 100) == -1){
+		kprintf("read file failed!\n");
+		return -1;
+	}
+	kprintf("read from file: %s", buf2);
+	// close the file
+	rf_close(fd);
+	while(1);
+	return 0;
+}
