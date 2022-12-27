@@ -8,6 +8,7 @@
 #define	FS_MISC_H
 
 #include "fat32.h"
+#include "ramfs.h"
 
 /**
  * @struct dev_drv_map fs.h "include/sys/fs.h"
@@ -121,6 +122,7 @@ struct dir_entry {
 union ptr_node{
 	struct inode*	fd_inode;	/**< Ptr to the i-node */
 	PFile 	fd_file;	//指向fat32的file结构体
+	pRF_REC fd_ram;
 };
 
 struct file_desc {

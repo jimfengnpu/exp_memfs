@@ -51,7 +51,7 @@
 
 #define NR_CPUS		1		//numbers of cpu. added by xw, 18/6/1
 #define	NR_FILES	64		//numbers of files a process can own. added by xw, 18/6/14
-
+#include "fs.h"
 //enum proc_stat	{IDLE,READY,WAITING,RUNNING};		//add by visual smile 2016.4.5
 //enum proc_stat	{IDLE,READY,SLEEPING};		//eliminate RUNNING state
 enum proc_stat	{IDLE,READY,SLEEPING,KILLED};	/* add KILLED state. when a process's state is KILLED, the process

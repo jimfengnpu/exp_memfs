@@ -6,7 +6,7 @@
 #define NR_FS 10		//modified by mingxuan 2020-10-18
 #define DEV_NAME_LEN 15
 //#define NR_fs 3
-#define NR_FS_OP 3		//modified by mingxuan 2020-10-18
+#define NR_FS_OP 4		//modified by mingxuan 2020-10-18 jf 20221225
 #define NR_SB_OP 2		//added by mingxuan 2020-10-30
 
 //#define FILE_MAX_LEN 512*4	//最大长度为4个扇区

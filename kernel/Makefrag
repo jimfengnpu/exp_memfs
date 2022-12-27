@@ -18,6 +18,7 @@ KERN_SRCFILES :=kernel/kernel.asm	\
 		kernel/console.c	\
 		kernel/syscallc.c	\
 		kernel/vfs.c	\
+		kernel/ramfs.c	\
 		kernel/proc.c	\
 		kernel/pagetbl.c	\
 		kernel/pthread.c	\

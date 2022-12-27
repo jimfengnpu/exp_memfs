@@ -18,6 +18,7 @@
 #include "memman.h"
 #include "vfs.h"
 #include "fat32.h"
+#include "ramfs.h"
 #include "x86.h"
 #include "assert.h"
 #include "stdio.h"
@@ -96,7 +97,8 @@ int kernel_main()
 	init_vfs();		//added by mingxuan 2020-10-30
 	init_fs();
 	init_fs_fat();	//added by mingxuan 2019-5-17
-	//init_vfs();	//added by mingxuan 2019-5-17	//deleted by mingxuan 2020-10-30
+	init_ram_fs();
+	// init_vfs();	//added by mingxuan 2019-5-17	//deleted by mingxuan 2020-10-30
 
 	/*************************************************************************
 	*第一个进程开始启动执行

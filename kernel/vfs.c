@@ -15,6 +15,7 @@
 #include "fs_misc.h"
 #include "vfs.h"
 #include "fat32.h"
+#include "ramfs.h"
 #include "stdio.h"
 
 //static struct device  device_table[NR_DEV];  //deleted by mingxuan 2020-10-18
@@ -86,6 +87,18 @@ void init_fileop_table()
     f_op_table[2].createdir = CreateDir;
     f_op_table[2].deletedir = DeleteDir;
 
+    // table[3] for ramfs
+    f_op_table[3].create = rf_create;
+    f_op_table[3].delete = rf_delete;
+    f_op_table[3].open = rf_open;
+    f_op_table[3].close = rf_close;
+    f_op_table[3].write = rf_write;
+    f_op_table[3].read = rf_read;
+    f_op_table[3].lseek = rf_lseef;
+    //     f_op_table[3].opendir = rf_openDir;
+    f_op_table[3].createdir = rf_createDir;
+    f_op_table[3].deletedir = rf_deleteDir;
+
 }
 
 //added by mingxuan 2020-10-30
@@ -106,6 +119,11 @@ void init_super_block_table(){
     //super_block[4] is fat32's superblock
     sb->sb_dev = DEV_HD;
     sb->fs_type = FAT32_TYPE; 
+    sb++;
+
+    //super_block[5] is ramfs's superblock
+    sb->sb_dev = DEV_HD;
+    sb->fs_type = RAM_FS_TYPE; 
     sb++;
 
     //another super_block are free
@@ -170,6 +188,11 @@ static void init_vfs_table(){  // modified by mingxuan 2020-10-30
     vfs_table[4].sb = &super_block[3];      //added by mingxuan 2020-10-30
     vfs_table[4].s_op = &sb_op_table[0];    //added by mingxuan 2020-10-30
 
+    //ramfs
+    vfs_table[5].fs_name = "ram";
+    vfs_table[5].op = &f_op_table[3];
+    vfs_table[5].sb = &super_block[5];
+    vfs_table[5].s_op = &sb_op_table[1];
 }
 
 static int get_index(char path[]){
@@ -412,12 +435,15 @@ int do_vopendir(char *path) {
     pathname[pathlen] = 0;
 
     int index;
-    index = (int)(pathname[1]-'0');
-
-    for(int j=0;j<= pathlen-3;j++)
-    {
-        pathname[j] = pathname[j+3];
+    index = get_index(pathname); //(int)(pathname[1]-'0');
+    if(index==-1){
+        kprintf("pathname error!\n");
+        return -1;
     }
+    //     for(int j=0;j<= pathlen-3;j++)
+    //     {
+    //         pathname[j] = pathname[j+3];
+    //     }
     state = f_op_table[index].opendir(pathname);
     if (state == 1) {
         kprintf("          open dir success!");
@@ -437,12 +463,15 @@ int do_vcreatedir(char *path) {
     pathname[pathlen] = 0;
 
     int index;
-    index = (int)(pathname[1]-'0');
-
-    for(int j=0;j<= pathlen-3;j++)
-    {
-        pathname[j] = pathname[j+3];
+    index =  get_index(pathname); //(int)(pathname[1]-'0');
+    if(index==-1){
+        kprintf("pathname error!\n");
+        return -1;
     }
+//     for(int j=0;j<= pathlen-3;j++)
+//     {
+//         pathname[j] = pathname[j+3];
+//     }
     state = f_op_table[index].createdir(pathname);
     if (state == 1) {
         kprintf("          create dir success!");
@@ -461,12 +490,15 @@ int do_vdeletedir(char *path) {
     pathname[pathlen] = 0;
 
     int index;
-    index = (int)(pathname[1]-'0');
-
-    for(int j=0;j<= pathlen-3;j++)
-    {
-        pathname[j] = pathname[j+3];
+    index =  get_index(pathname); //(int)(pathname[1]-'0');
+    if(index==-1){
+        kprintf("pathname error!\n");
+        return -1;
     }
+//     for(int j=0;j<= pathlen-3;j++)
+//     {
+//         pathname[j] = pathname[j+3];
+//     }
     state = f_op_table[index].deletedir(pathname);
     if (state == 1) {
         kprintf("          delete dir success!");

@@ -251,6 +251,7 @@ struct hd_cmd {
 # define ORANGE_TYPE 	0x1
 # define FAT32_TYPE	 	0x2
 # define TTY_FS_TYPE	0x3	//added by mingxuan 2020-10-30
+# define RAM_FS_TYPE	0x4	//added by jf 2022-12-25
 
 struct part_info {
 	u32	base;		/* # of start sector (NOT byte offset, but SECTOR) */
