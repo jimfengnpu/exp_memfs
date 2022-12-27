@@ -31,7 +31,7 @@ int rf_open(const char *path, int mode);
 int rf_close(int fd);
 int rf_read(int fd, void *buf, int length);
 int rf_write(int fd, const void *buf, int length);
-int rf_lseef(int fd, int offset, int whence);
+int rf_lseek(int fd, int offset, int whence);
 int rf_create(const char *filename);
 int rf_createDir(const char *dirname);
 int rf_openDir(const char *dirname);
