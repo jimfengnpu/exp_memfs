@@ -203,7 +203,7 @@ static int get_index(char path[]){
     int len = (pathlen < DEV_NAME_LEN) ? pathlen : DEV_NAME_LEN;
     
     int i,a=0;
-    for(i=0;i<len;i++){
+    for(i=0;i<pathlen;i++){
         if( path[i] == '/'){
             a=i;
             a++;

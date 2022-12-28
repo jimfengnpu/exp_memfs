@@ -101,8 +101,7 @@ static pRF_REC findpath(const char *path, u32 dir_clu, int flag, int find_type){
 		if (spos)//dir
 		{
 			rf_write_record(dir_clu, entname, ni, RF_D, 0);
-
-			//dir content
+			// dir content
 			rf_write_record(ni, ".", ni, RF_D, 0);//dir to itself
 			rf_write_record(ni, "..", dir_clu, RF_D, 0);//dir to parent
 			return findpath(path + spos, ni, flag, find_type);
@@ -115,6 +114,7 @@ static pRF_REC findpath(const char *path, u32 dir_clu, int flag, int find_type){
 			}
 			return rf_write_record(dir_clu, entname, ni, find_type, 0);
 		}
+		kprintf("create in %d: %s(%d)\n", dir_clu, entname, ni);
 	}
 	return NULL;
 }
@@ -325,8 +325,9 @@ int rf_delete(const char *filename)
 			RF_FAT_ROOT[clu] = 0;
 			clu = nxt_clu;
 		}
+		return OK;
 	}
-	return OK;
+	return -1;
 }
 
 int rf_deleteDir(const char *dirname)
@@ -340,6 +341,7 @@ int rf_deleteDir(const char *dirname)
 			RF_FAT_ROOT[clu] = 0;
 			clu = nxt_clu;
 		}
+		return OK;
 	}
-	return OK;
+	return -1;
 }

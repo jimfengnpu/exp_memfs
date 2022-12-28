@@ -11,6 +11,22 @@
 		"*.tcc": "c",
 		"fstream": "c",
 		"sstream": "c",
-		"cstring": "c"
+		"cstring": "c",
+		"array": "c",
+		"concepts": "c",
+		"condition_variable": "c",
+		"type_traits": "c",
+		"istream": "c",
+		"mutex": "c",
+		"new": "c",
+		"numeric": "c",
+		"ostream": "c",
+		"semaphore": "c",
+		"stop_token": "c",
+		"system_error": "c",
+		"thread": "c",
+		"functional": "c",
+		"tuple": "c",
+		"utility": "c"
 	}
 }

@@ -58,16 +58,21 @@ void init_vfs();
 void init_file_desc_table();
 void init_fileop_table();
 
-int sys_CreateFile(void *uesp);
-int sys_DeleteFile(void *uesp);
-int sys_OpenFile(void *uesp);
-int sys_CloseFile(void *uesp);
-int sys_WriteFile(void *uesp);
-int sys_ReadFile(void *uesp);
-int sys_OpenDir(void *uesp);
-int sys_CreateDir(void *uesp);
-int sys_DeleteDir(void *uesp);
-int sys_ListDir(void *uesp);
+int create(char *pathname);
+int delete(char *path);
+// int opendir(char *dirname);
+int createdir(char *dirname);
+int deletedir(char *dirname);
+// int sys_CreateFile(void *uesp);
+// int sys_DeleteFile(void *uesp);
+// int sys_OpenFile(void *uesp);
+// int sys_CloseFile(void *uesp);
+// int sys_WriteFile(void *uesp);
+// int sys_ReadFile(void *uesp);
+// int sys_OpenDir(void *uesp);
+// int sys_CreateDir(void *uesp);
+// int sys_DeleteDir(void *uesp);
+// int sys_ListDir(void *uesp);
 
 //文件系统的操作函数
 struct file_op{

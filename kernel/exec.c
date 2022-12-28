@@ -92,7 +92,8 @@ u32 sys_exec(char *path)
 	}
 	//堆    用户还没有申请，所以没有分配，只在PCB表里标示了线性起始位置
 	
-	real_close(fd);	//added by mingxuan 2019-5-23
+	// real_close(fd);	//added by mingxuan 2019-5-23
+	do_vclose(fd);
 	if (Echo_Ehdr != NULL)
 		sys_free(Echo_Ehdr);
 	if (Echo_Phdr != NULL)

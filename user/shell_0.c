@@ -21,6 +21,7 @@ int main(int arg, char *argv[])
 		printf("\nminiOS:/ $ ");
 		if (gets(buf) && strlen(buf) != 0)
 		{
+			
 			if (exec(buf) != 0)
 			{
 				printf("exec failed: file not found!\n");
