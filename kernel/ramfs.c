@@ -189,7 +189,45 @@ int rf_close(int fd)
 }
 
 
-//return bytes have been read
+// //return bytes have been read
+// int rf_read(int fd, void *buf, int length)
+// {
+// 	if (!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
+// 		return -1;
+// 	pRF_REC frec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
+// 	int pos = p_proc_current->task.filp[fd]->fd_pos;
+// 	int fat_offset = pos / RAM_FS_CLUSTER_SIZE;
+// 	int cluster = frec->start_cluster;
+// 	while(RF_FAT_ROOT[cluster]!=MAX_UNSIGNED_INT){
+// 		if(fat_offset==0)
+// 			break;
+// 		fat_offset--;
+// 		cluster = RF_FAT_ROOT[cluster];
+// 	}
+// 	pRF_CLU clu_data = RF_DATA_ROOT + cluster;
+// 	char *rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
+// 	int pref = 0, last_pref = 0;
+// 	//end of expected buf later than current cluster
+// 	while ((char *)(clu_data + 1) < rf_data + length-last_pref)
+// 	{
+// 		int pref = (char *)(clu_data + 1) - (rf_data + last_pref);//part in this cluster
+// 		memcpy((void*)va2la(proc2pid(p_proc_current), buf + last_pref),rf_data, pref);
+// 		if(RF_FAT_ROOT[cluster]==MAX_UNSIGNED_INT){
+// 			rf_data = 0;
+// 			break;
+// 		}
+// 		last_pref += pref;
+// 		cluster = RF_FAT_ROOT[cluster];
+// 		clu_data = RF_DATA_ROOT + cluster;
+// 		rf_data = (char *)clu_data;
+// 	}
+// 	if(length>last_pref&& rf_data)
+// 	memcpy((void*)va2la(proc2pid(p_proc_current), buf+last_pref), rf_data, length-last_pref);
+// 	return last_pref;
+// }
+
+// 先前写得rf_read没有更新pos，并且在跨扇区读入有问题
+// 许安杰重写了这一部分
 int rf_read(int fd, void *buf, int length)
 {
 	if (!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
@@ -198,7 +236,7 @@ int rf_read(int fd, void *buf, int length)
 	int pos = p_proc_current->task.filp[fd]->fd_pos;
 	int fat_offset = pos / RAM_FS_CLUSTER_SIZE;
 	int cluster = frec->start_cluster;
-	while(RF_FAT_ROOT[cluster]!=MAX_UNSIGNED_INT){
+	while(RF_FAT_ROOT[cluster] != MAX_UNSIGNED_INT){
 		if(fat_offset==0)
 			break;
 		fat_offset--;
@@ -206,25 +244,22 @@ int rf_read(int fd, void *buf, int length)
 	}
 	pRF_CLU clu_data = RF_DATA_ROOT + cluster;
 	char *rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
-	int pref = 0, last_pref = 0;
-	//end of expected buf later than current cluster
-	while ((char *)(clu_data + 1) < rf_data + length-last_pref)
-	{
-		int pref = (char *)(clu_data + 1) - (rf_data + last_pref);//part in this cluster
-		memcpy((void*)va2la(proc2pid(p_proc_current), buf + last_pref),rf_data, pref);
-		if(RF_FAT_ROOT[cluster]==MAX_UNSIGNED_INT){
-			rf_data = 0;
-			break;
-		}
-		last_pref += pref;
+	int bytes_read = 0;
+	while(bytes_read < length && cluster != MAX_UNSIGNED_INT) {
+		int cluster_can_read = min(length - bytes_read, 512 - (pos % RAM_FS_CLUSTER_SIZE));
+		assert(cluster_can_read >= 0 && cluster_can_read <= 512);
+		memcpy((void*)va2la(proc2pid(p_proc_current), buf + bytes_read), rf_data, cluster_can_read);
+		bytes_read += cluster_can_read;
+		pos += cluster_can_read;
 		cluster = RF_FAT_ROOT[cluster];
 		clu_data = RF_DATA_ROOT + cluster;
-		rf_data = (char *)clu_data;
+		rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
 	}
-	if(length>last_pref&& rf_data)
-	memcpy((void*)va2la(proc2pid(p_proc_current), buf+last_pref), rf_data, length-last_pref);
-	return last_pref;
+	// *((char*) buf + bytes_read) = '\0';
+	p_proc_current->task.filp[fd]->fd_pos = pos;
+	return bytes_read;
 }
+
 
 //return bytes have been write
 int rf_write(int fd, const void *buf, int length)
