@@ -246,8 +246,8 @@ int rf_read(int fd, void *buf, int length)
 	char *rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
 	int bytes_read = 0;
 	while(bytes_read < length && cluster != MAX_UNSIGNED_INT) {
-		int cluster_can_read = min(length - bytes_read, 512 - (pos % RAM_FS_CLUSTER_SIZE));
-		assert(cluster_can_read >= 0 && cluster_can_read <= 512);
+		int cluster_can_read = min(length - bytes_read, RAM_FS_CLUSTER_SIZE - (pos % RAM_FS_CLUSTER_SIZE));//mod jf:change 512 to RAM_FS_CLUSTER_SIZE,avoid hard coding
+		assert(cluster_can_read >= 0 && cluster_can_read <= RAM_FS_CLUSTER_SIZE);
 		memcpy((void*)va2la(proc2pid(p_proc_current), buf + bytes_read), rf_data, cluster_can_read);
 		bytes_read += cluster_can_read;
 		pos += cluster_can_read;
@@ -288,15 +288,15 @@ int rf_write(int fd, const void *buf, int length)
 	//end of expected buf later than current cluster
 	while ((char *)(clu_data + 1) < rf_data + length-last_pref)
 	{
-		int pref = (char *)(clu_data + 1) - (rf_data + last_pref);//part in this cluster
+		int pref = (char *)(clu_data + 1) - rf_data;//part in this cluster, fixed 23.1.10 jf
 		memcpy(rf_data, (void*)va2la(proc2pid(p_proc_current), (void*)buf + last_pref), pref);
+		last_pref += pref;
 		if(RF_FAT_ROOT[cluster]==MAX_UNSIGNED_INT){
 			int ni = rf_find_first_free();
 			assert(ni >= 0);
 			rf_alloc_clu(ni);
 			RF_FAT_ROOT[cluster] = ni;
 		}
-		last_pref += pref;
 		cluster = RF_FAT_ROOT[cluster];
 		clu_data = RF_DATA_ROOT + cluster;
 		rf_data = (char *)clu_data;

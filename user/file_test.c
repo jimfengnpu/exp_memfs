@@ -35,6 +35,8 @@ int main(int argc, char *argv[])
 		case 'd':
 			if(delete(buf + 2)!=1)deletedir(buf+2);
 			break;
+		case 'q':
+		    exec("ram/shell_0.bin");
 		default:
 			break;
 		}
