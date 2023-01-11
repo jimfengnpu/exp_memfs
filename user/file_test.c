@@ -10,6 +10,7 @@
 char buf[256];
 
 void test() {
+	printf("hello, this is file test\n");
 	int fd = open("ram/test.txt", O_RDWR | O_CREAT);
 	if (fd == -1) {
 		printf("open failed\n");

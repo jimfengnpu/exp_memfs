@@ -51,6 +51,9 @@
 
 #define NR_CPUS		1		//numbers of cpu. added by xw, 18/6/1
 #define	NR_FILES	64		//numbers of files a process can own. added by xw, 18/6/14
+
+#define MAX_DIRENTRY_LEN 200            // the max length of a directory entry, added by anjie
+
 #include "fs.h"
 //enum proc_stat	{IDLE,READY,WAITING,RUNNING};		//add by visual smile 2016.4.5
 //enum proc_stat	{IDLE,READY,SLEEPING};		//eliminate RUNNING state
@@ -154,6 +157,8 @@ typedef struct s_proc {
 	//added by zcr
 	struct file_desc * filp[NR_FILES];
 	//~zcr
+	// adder by anjie xu
+	char cwd[MAX_DIRENTRY_LEN]; // current working directory
 }PROCESS_0;
 
 //new PROCESS struct with PCB and process's kernel stack

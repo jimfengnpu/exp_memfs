@@ -304,7 +304,7 @@ int rf_write(int fd, const void *buf, int length)
 	memcpy(rf_data, (void*)va2la(proc2pid(p_proc_current), (void*)buf+last_pref), length-pref);
 	pos += length;
 	p_proc_current->task.filp[fd]->fd_pos = pos;
-	if(pos > frec->size)frec->size = pos;
+	if(pos > frec->size) frec->size = pos;
 	return length;
 }
 

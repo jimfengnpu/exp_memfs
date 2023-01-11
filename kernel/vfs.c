@@ -305,7 +305,6 @@ int do_vopen(const char *path, int flags) {
         kprintf("pathname error! path: %s\n", path);
         return -1;
     }
-
     fd = vfs_table[index].op->open(pathname, flags);    //modified by mingxuan 2020-10-18
     if(fd != -1)
     {
