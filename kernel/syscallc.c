@@ -134,3 +134,9 @@ void sys_udisp_str(char *arg)
 	disp_str(arg);
 	return ;
 }
+
+int sys_get_cwd(char *arg)
+{
+	strcpy(arg, p_proc_current->task.cwd);
+	return strlen(arg);
+}

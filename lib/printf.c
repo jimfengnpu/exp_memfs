@@ -30,4 +30,3 @@ printf(const char *fmt, ...)
 
 	return rc;
 }
-

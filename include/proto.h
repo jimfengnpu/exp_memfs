@@ -100,6 +100,7 @@ int sys_free_4k(void* AdddrLin);		//edit by visual 2016.5.9
 int sys_pthread(void *arg);		//add by visual 2016.4.11
 void sys_udisp_int(int arg);		//add by visual 2016.5.16
 void sys_udisp_str(char* arg);		//add by visual 2016.5.16
+int sys_get_cwd(char *buf);
 
 /* proc.c */
 PROCESS* alloc_PCB();

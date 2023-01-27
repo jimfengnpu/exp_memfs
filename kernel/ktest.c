@@ -76,7 +76,7 @@ static void untar(const char * filename)
 			f_len = (f_len * 8) + (*p++ - '0'); /* octal */
 
 		int bytes_left = f_len;
-		char full_name[30] = "ram/";
+		char full_name[30] = "orange/";
 		strcat(full_name,phdr->name);
 		int fdout = do_vopen(full_name, O_CREAT | O_RDWR );	//modified by mingxuan 2019-5-20
 		if (fdout == -1) {
@@ -97,11 +97,11 @@ static void untar(const char * filename)
 		do_vclose(fdout);	//modified by mingxuan 2019-5-20
 	}
 
-	// if (i) {
-	// 	do_vlseek(fd, 0, SEEK_SET); //modified by mingxuan 2019-5-20
-	// 	buf[0] = 0;
-	// 	do_vwrite(fd, buf, 1);	//modified by mingxuan 2019-5-20
-	// }
+	if (i) {
+		do_vlseek(fd, 0, SEEK_SET); //modified by mingxuan 2019-5-20
+		buf[0] = 0;
+		do_vwrite(fd, buf, 1);	//modified by mingxuan 2019-5-20
+	}
 
 	do_vclose(fd);	//modified by mingxuan 2019-5-21
 
@@ -119,15 +119,20 @@ void initial()
 	//untar(INSTALL_FILENAME);
 	//modified by mingxuan 2019-5-21
 	char full_name[30]="orange/";
+	// p_proc_current->task.cwd = "orange";
+	memcpy(p_proc_current->task.cwd, "orange\0", strlen("orange\0"));
 	printf("untar:%s\n",full_name);
 	strcat(full_name,INSTALL_FILENAME);
 	untar(full_name);
+
+	getcwd(full_name);
+	printf("cwd : %s\n", full_name);
 
 	do_vclose(stdin);
 	do_vclose(stdout);
 	do_vclose(stderr);
 
-	exec("ram/shell_0.bin");
+	exec("orange/shell_0.bin");
 
 	while(1);
 }

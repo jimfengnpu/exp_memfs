@@ -7,7 +7,9 @@
 #include "proto.h"
 #include "stdio.h"
 #include "vfs.h"
+#include "assert.h"
 char buf[256];
+
 
 void test() {
 	printf("hello, this is file test\n");
@@ -32,12 +34,21 @@ void test() {
 	printf("test finished\n");
 }
 
+void pwd() {
+	get_cwd(buf);
+	printf("finished get\n");
+	printf("%s\n", buf);
+}
+
 void fake_shell() {
 	while (1)
 	{
 		printf("\nminiOS:/ $ ");
 		if (gets(buf) && strlen(buf) != 0)
 		{
+			if(strcmp(buf, "pwd") == 0) {
+				pwd();
+			}
 			if(exec(buf) != 0) {
 				printf("exec %s failed\n", buf);
 			}
@@ -47,8 +58,10 @@ void fake_shell() {
 
 int main(int argc, char *argv[])
 {
-	test();
-	fake_shell();
+	while(1) {
+		fake_shell();
+		test();
+	}
 
 	// int fd;
 	// printf("cmd_char [path]\n");

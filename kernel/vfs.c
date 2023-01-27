@@ -99,6 +99,10 @@ void init_fileop_table()
     f_op_table[3].createdir = rf_createDir;
     f_op_table[3].deletedir = rf_deleteDir;
 
+    f_op_table[0].getcwd = getcwd;
+    f_op_table[1].getcwd = getcwd;
+    f_op_table[2].getcwd = getcwd;
+    f_op_table[3].getcwd = getcwd;
 }
 
 //added by mingxuan 2020-10-30

@@ -440,7 +440,8 @@ static int do_open(MESSAGE *fs_msg)
 	struct inode * pin = 0;
 	if (flags & O_CREAT) {
 		if (inode_nr) {
-			return -1;
+			// return -1;
+			return fd;	//modified by anjie, because if the file exists, we should return the fd of the file.
 		}
 		else {
 			pin = create_file(pathname, flags);

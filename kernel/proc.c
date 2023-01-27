@@ -135,3 +135,10 @@ void* va2la(int pid, void* va)
 }
 //~zcr
 
+int getcwd(char *buf)
+{
+	memcpy(buf, p_proc_current->task.cwd, strlen(p_proc_current->task.cwd));
+	buf[strlen(p_proc_current->task.cwd)] = '/';
+	buf[strlen(p_proc_current->task.cwd)+1] = '\0';
+	return strlen(p_proc_current->task.cwd);
+}
