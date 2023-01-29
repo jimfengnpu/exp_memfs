@@ -152,10 +152,10 @@ int sys_get_cwd(char *arg)
 
 int sys_chdir(char *arg) 
 {
-	return rf_openDir((const char*)get_arg(arg, 1));
+	return rf_open_dir((const char*)get_arg(arg, 1));
 }
 
 int sys_mkdir(char *arg)
 {
-	return rf_createDir((const char*)get_arg(arg, 1));
+	return rf_create_dir((const char*)get_arg(arg, 1));
 }
