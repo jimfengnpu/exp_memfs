@@ -28,5 +28,6 @@
 		"functional": "c",
 		"tuple": "c",
 		"utility": "c"
-	}
+	},
+	"terminal.integrated.gpuAcceleration": "off"
 }

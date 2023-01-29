@@ -96,8 +96,8 @@ void init_fileop_table()
     f_op_table[3].read = rf_read;
     f_op_table[3].lseek = rf_lseek;
     //     f_op_table[3].opendir = rf_openDir;
-    f_op_table[3].createdir = rf_createDir;
-    f_op_table[3].deletedir = rf_deleteDir;
+    f_op_table[3].createdir = rf_create_dir;
+    f_op_table[3].deletedir = rf_delete_dir;
 
 //     f_op_table[0].get_cwd = get_cwd;
 //     f_op_table[1].get_cwd = get_cwd;
