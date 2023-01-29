@@ -79,7 +79,9 @@ system_call sys_call_table[NR_SYS_CALL] = {
     sys_opendir,    // added by mingxuan 2019-5-17
     sys_createdir,  // added by mingxuan 2019-5-17
     sys_deletedir,  // added by mingxuan 2019-5-17
-    sys_get_cwd     // added by anjie
+    sys_get_cwd,    // added by xu
+    sys_chdir,      // added by xu
+    sys_mkdir       // added by xu
 };
 
 TTY tty_table[NR_CONSOLES];	    // added by mingxuan 2019-5-19

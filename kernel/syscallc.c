@@ -13,6 +13,7 @@
 #include "global.h"
 #include "proto.h"
 #include "memman.h"
+#include "ramfs.h"
 
 #include "stdio.h" // xu add for debug
 
@@ -146,4 +147,15 @@ int sys_get_cwd(char *arg)
 {
 	// strcpy(arg, p_proc_current->task.cwd);
 	return do_get_cwd((char*)get_arg(arg, 1));
+}
+
+
+int sys_chdir(char *arg) 
+{
+	return rf_openDir((const char*)get_arg(arg, 1));
+}
+
+int sys_mkdir(char *arg)
+{
+	return rf_createDir((const char*)get_arg(arg, 1));
 }

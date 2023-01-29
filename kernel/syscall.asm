@@ -37,7 +37,10 @@ _NR_delete 		equ 24 ;    //added by mingxuan 2019-5-17
 _NR_opendir 		equ 25 ;    //added by mingxuan 2019-5-17
 _NR_createdir  		equ 26 ;    //added by mingxuan 2019-5-17
 _NR_deletedir   	equ 27 ;    //added by mingxuan 2019-5-17
-_NR_get_cwd             equ 28 ;
+_NR_get_cwd             equ 28 ;    // added by xu
+_NR_chdir               equ 29 ;    // added by xu
+_NR_mkdir               equ 30 ;    // added by xu
+
 
 INT_VECTOR_SYS_CALL	equ 0x90
 
@@ -73,7 +76,9 @@ global  opendir		;		//added by mingxuan 2019-5-17
 global	createdir	;		//added by mingxuan 2019-5-17
 global  deletedir	;		//added by mingxuan 2019-5-17
 
-global  get_cwd         ;               // added by anjie
+global  get_cwd         ;               // added by xu
+global  chdir           ;		// added by xu
+global  mkdir           ;		// added by xu
 
 bits 32
 [section .text]
@@ -367,6 +372,22 @@ get_cwd:
 	push    ebx
 	mov     ebx, esp
 	mov     eax, _NR_get_cwd
+	int     INT_VECTOR_SYS_CALL
+	pop     ebx
+	ret
+
+chdir:
+	push    ebx
+	mov     ebx, esp
+	mov     eax, _NR_chdir
+	int     INT_VECTOR_SYS_CALL
+	pop     ebx
+	ret
+
+mkdir:
+	push    ebx
+	mov     ebx, esp
+	mov     eax, _NR_mkdir
 	int     INT_VECTOR_SYS_CALL
 	pop     ebx
 	ret

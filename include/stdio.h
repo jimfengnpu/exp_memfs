@@ -72,5 +72,7 @@ char getchar();         //added by mingxuan 2019-5-23
 char* gets(char *str);  //added by mingxuan 2019-5-23
 
 int get_cwd(char *buf);
+int chdir(char *dir);
+int mkdir(char *dir);
 
 #endif  //added by mingxuan 2019-5-19

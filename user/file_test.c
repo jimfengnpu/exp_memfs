@@ -11,7 +11,7 @@
 char buf[256];
 
 
-void test() {
+void easytest() {
 	printf("hello, this is file test\n");
 	int fd = open("ram/test.txt", O_RDWR | O_CREAT);
 	if (fd == -1) {
@@ -56,7 +56,7 @@ void fake_shell() {
 		if (gets(buf) && strlen(buf) != 0)
 		{
 			if(strcmp(buf, "pwd") == 0) {
-				pwd();
+				pwd_u();
 			}
 			else if(exec(buf) != 0) {
 				printf("exec %s failed\n", buf);
@@ -65,12 +65,28 @@ void fake_shell() {
 	}
 }
 
+void testDir() {
+	// mkdir("ram/test");
+	if(mkdir("ram/test") == -1)
+		printf("mkdir failed\n");
+	else 
+		printf("mkdir ram/test finished\n");
+	if(chdir("ram/test") == -1) 
+		printf("chdir failed\n");
+	else 
+		printf("chdir ram/test finished\n");
+	get_cwd(buf);
+	printf("cwd: %s\n", buf);
+	printf("dir test finished\n");
+}
+
 int main(int argc, char *argv[])
 {
-	while(1) {
-		fake_shell();
-		test();
-	}
+	testDir();
+	// while(1) {
+	// 	fake_shell();
+	// 	test();
+	// }
 
 	// int fd;
 	// printf("cmd_char [path]\n");
