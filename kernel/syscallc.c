@@ -14,6 +14,8 @@
 #include "proto.h"
 #include "memman.h"
 
+#include "stdio.h" // xu add for debug
+
 struct memfree *memarg = 0;
 
 /*======================================================================*
@@ -135,8 +137,13 @@ void sys_udisp_str(char *arg)
 	return ;
 }
 
+int do_get_cwd(char *filepath)
+{
+	strcpy(filepath, p_proc_current->task.cwd);
+	return strlen(filepath);
+}
 int sys_get_cwd(char *arg)
 {
-	strcpy(arg, p_proc_current->task.cwd);
-	return strlen(arg);
+	// strcpy(arg, p_proc_current->task.cwd);
+	return do_get_cwd((char*)get_arg(arg, 1));
 }

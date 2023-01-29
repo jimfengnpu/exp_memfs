@@ -16,17 +16,20 @@ int main(int arg, char *argv[])
 	char buf[1024];
 	int pid;
 	int times = 0;
-	while (1)
-	{
-		printf("\nminiOS:/ $ ");
-		if (gets(buf) && strlen(buf) != 0)
-		{
+	exec("orange/file_test.bin");
+// 	while (1)
+// 	{
+// 		printf("\nminiOS:/ $ ");
+// 		// debug
+// 		// exec("orange/file_test.bin");
+// 		if (gets(buf) && strlen(buf) != 0)
+// 		{
 			
-			if (exec(buf) != 0)
-			{
-				printf("exec failed: file not found!\n");
-				continue;
-			}
-		}
-	}
+// 			if (exec(buf) != 0)
+// 			{
+// 				printf("exec failed: file not found!\n");
+// 				continue;
+// 			}
+// 		}
+// 	}
 }

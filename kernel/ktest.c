@@ -125,9 +125,6 @@ void initial()
 	strcat(full_name,INSTALL_FILENAME);
 	untar(full_name);
 
-	getcwd(full_name);
-	printf("cwd : %s\n", full_name);
-
 	do_vclose(stdin);
 	do_vclose(stdout);
 	do_vclose(stderr);

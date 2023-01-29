@@ -337,16 +337,20 @@ int rf_lseek(int fd, int offset, int whence)
 
 int rf_create(const char *pathname)
 {
-	return findpath(pathname, 0, O_CREAT, RF_F)!=NULL?OK:-1;
+	return findpath(pathname, 0, O_CREAT, RF_F) != NULL ? OK : -1;
 }
 
 int rf_createDir(const char *dirname)
 {
-	return findpath(dirname, 0, O_CREAT, RF_D)!=NULL?OK:-1;
+	return findpath(dirname, 0, O_CREAT, RF_D) != NULL ? OK : -1;
 }
 
+// xu
 int rf_openDir(const char *dirname)
 {
+	if(findpath(dirname, 0, O_RDWR, RF_D) == NULL)
+		return -1;
+	strcpy(p_proc_current->task.cwd, dirname);
 	return OK;
 }
 
@@ -372,7 +376,7 @@ int rf_deleteDir(const char *dirname)
 	if(pREC){
 		pREC->record_type = RF_NONE;
 		u32 clu = pREC->start_cluster,nxt_clu=0;
-		while(nxt_clu !=MAX_UNSIGNED_INT){
+		while(nxt_clu != MAX_UNSIGNED_INT){
 			nxt_clu = RF_FAT_ROOT[clu];
 			RF_FAT_ROOT[clu] = 0;
 			clu = nxt_clu;

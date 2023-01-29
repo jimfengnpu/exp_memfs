@@ -34,10 +34,19 @@ void test() {
 	printf("test finished\n");
 }
 
-void pwd() {
-	get_cwd(buf);
-	printf("finished get\n");
-	printf("%s\n", buf);
+void pwd_u() {
+	char tmp[40];
+	get_cwd(tmp);
+	printf("cwd: %s\n", tmp);
+}
+
+void chdir_u() {
+	char tmp[40];
+	strcpy(tmp, buf+3);
+	if(chdir(tmp) == -1) {
+		printf("chdir failed\n");
+	}
+	pwd_u();
 }
 
 void fake_shell() {
@@ -49,7 +58,7 @@ void fake_shell() {
 			if(strcmp(buf, "pwd") == 0) {
 				pwd();
 			}
-			if(exec(buf) != 0) {
+			else if(exec(buf) != 0) {
 				printf("exec %s failed\n", buf);
 			}
 		}
