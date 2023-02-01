@@ -2,7 +2,7 @@
 *	base.c       //added by mingxuan 2019-5-17
 ***********************************************************/
 
-#include "fat32.h"
+
 #include "type.h"
 #include "const.h"
 #include "protect.h"
@@ -15,6 +15,7 @@
 #include "fs_const.h"
 #include "hd.h"
 #include "fs.h"
+#include "fat32.h"
 #include "fs_misc.h"
 
 DWORD FAT_END=268435455;//文件簇号结束标记

@@ -2,7 +2,6 @@
 *	fat32.c       //added by mingxuan 2019-5-17
 ***********************************************************/
 
-#include "fat32.h"
 #include "type.h"
 #include "const.h"
 #include "protect.h"
@@ -15,6 +14,7 @@
 #include "fs_const.h"
 #include "hd.h"
 #include "fs.h"
+#include "fat32.h"
 #include "fs_misc.h"
 #include "string.h"
 #include "stdio.h"
@@ -113,7 +113,7 @@ STATE CreateDir(const char *dirname)
 	return OK;
 }
 
-STATE OpenDir(const char* dirname)
+STATE OpenDir(const char* dirname, struct dir_ent *dirent, int mx_ent)
 {
 	DWORD parentCluster=0;
 	CHAR fullpath[256]={0},parent[256]={0},name[256]={0};

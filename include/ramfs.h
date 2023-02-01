@@ -25,6 +25,8 @@ typedef union{
 typedef RAM_FS_RECORD *pRF_REC;
 typedef RF_CLU *pRF_CLU;
 typedef u32 RF_FAT, *pRF_FAT;
+#include "fs.h"
+#include "fs_misc.h"
 #define RAM_FS_DATA_BASE	(RAM_FS_BASE + sizeof(RF_FAT) * RAM_FS_NR_CLU)
 void init_ram_fs();
 int rf_open(const char *path, int mode);
@@ -34,7 +36,7 @@ int rf_write(int fd, const void *buf, int length);
 int rf_lseek(int fd, int offset, int whence);
 int rf_create(const char *filename);
 int rf_create_dir(const char *dirname);
-int rf_open_dir(const char *dirname);
+int rf_open_dir(const char *dirname, struct dir_ent *dirent, int mx_ent);
 int rf_delete(const char *filename);
 int rf_delete_dir(const char *dirname);
 #endif

@@ -17,6 +17,7 @@
 #include "fat32.h"
 #include "ramfs.h"
 #include "stdio.h"
+#include "assert.h"
 
 //static struct device  device_table[NR_DEV];  //deleted by mingxuan 2020-10-18
 static struct vfs  vfs_table[NR_FS];   //modified by mingxuan 2020-10-18
@@ -199,23 +200,39 @@ static void init_vfs_table(){  // modified by mingxuan 2020-10-30
     vfs_table[5].s_op = &sb_op_table[1];
 }
 
-static int get_index(char path[]){
+//path: /xxx/yyy  ==>  /xxx/yyy
+//path: xxx/yyy   ==>  /cwd/xxx/yyy
+static void process_relative_path(char *path)
+{
+    int path_len = strlen(path);
+    int cwd_len = strlen(p_proc_current->task.cwd);
+    int i = path_len - 1;
+    for(int j = i + cwd_len + 1; j > cwd_len; j--)
+    {
+	path[j] = path[i--];
+    }
+    strcpy(path, p_proc_current->task.cwd);
+    path[cwd_len] = '/';
+    path[path_len + cwd_len +1] = '\0';
+}
 
+static int get_index(char path[]){
+    process_relative_path(path);
     int pathlen = strlen(path);
     //char dev_name[DEV_NAME_LEN];
     char fs_name[DEV_NAME_LEN];   //modified by mingxuan 2020-10-18
     int len = (pathlen < DEV_NAME_LEN) ? pathlen : DEV_NAME_LEN;
     
-    int i,a=0;
-    for(i=0;i<pathlen;i++){
-        if( path[i] == '/'){
-            a=i;
+    int i,a=1,j=1;
+    for(i=0;i<pathlen;i++,j++){
+        if( path[j] == '/'){
+            a=j;
             a++;
             break;
         }
         else {
             //dev_name[i] = path[i];
-            fs_name[i] = path[i];   //modified by mingxuan 2020-10-18
+            fs_name[i] = path[j];   //modified by mingxuan 2020-10-18
         }
     }
     //dev_name[i] = '\0';
@@ -278,7 +295,7 @@ int sys_delete(void *uesp) {
 }
 
 int sys_opendir(void *uesp) {
-    return do_vopendir((char *)get_arg(uesp, 1));
+    return do_vopendir((char *)get_arg(uesp, 1), (struct dir_ent*)get_arg(uesp, 2), (int)get_arg(uesp, 3));
 }
 
 int sys_createdir(void *uesp) {
@@ -289,6 +306,15 @@ int sys_deletedir(void *uesp) {
     return do_vdeletedir((char *)get_arg(uesp, 1));
 }
 
+int sys_chdir(char *arg) 
+{
+	return do_vchdir((const char*)get_arg(arg, 1));
+}
+
+int sys_mkdir(char *arg)
+{
+	return rf_create_dir((const char*)get_arg(arg, 1));
+}
 
 /*======================================================================*
                               do_v* 系列函数
@@ -428,15 +454,22 @@ int do_vdelete(char *path) {
     //return device_table[index].op->delete(pathname);
     return vfs_table[index].op->delete(pathname);   //modified by mingxuan 2020-10-18
 }
-int do_vopendir(char *path) {
+int do_vopendir(char *path, struct dir_ent *dirent, int mx_ent) {
     int state;
-
+    int cnt = 0;
     int pathlen = strlen(path);
     char pathname[MAX_PATH];
     
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
+    if(strcmp(pathname, "/") == 0){
+	while(cnt < NR_FS && cnt < mx_ent) {
+	    strcpy(dirent[cnt].name, vfs_table[cnt].fs_name);
+	    cnt++;
+	}
+	return 1;
+    }
     int index;
     index = get_index(pathname); //(int)(pathname[1]-'0');
     if(index==-1){
@@ -447,7 +480,7 @@ int do_vopendir(char *path) {
     //     {
     //         pathname[j] = pathname[j+3];
     //     }
-    state = f_op_table[index].opendir(pathname);
+    state = f_op_table[index].opendir(pathname, dirent, mx_ent);
     if (state == 1) {
         kprintf("          open dir success!");
     } else {
@@ -509,4 +542,15 @@ int do_vdeletedir(char *path) {
 		DisErrorInfo(state);
     }   
     return state;
+}
+
+int do_vchdir(const char *dirname)
+{
+    int pathlen = strlen(dirname);
+    char pathname[MAX_PATH];
+    strcpy(pathname, (char *)dirname);
+    pathname[pathlen] = 0;
+    process_relative_path(pathname);
+    strcpy(p_proc_current->task.cwd, pathname);
+    return 1;
 }

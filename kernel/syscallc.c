@@ -148,14 +148,3 @@ int sys_get_cwd(char *arg)
 	// strcpy(arg, p_proc_current->task.cwd);
 	return do_get_cwd((char*)get_arg(arg, 1));
 }
-
-
-int sys_chdir(char *arg) 
-{
-	return rf_open_dir((const char*)get_arg(arg, 1));
-}
-
-int sys_mkdir(char *arg)
-{
-	return rf_create_dir((const char*)get_arg(arg, 1));
-}

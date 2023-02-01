@@ -1,7 +1,7 @@
 /**********************************************************
 *	vfs.h       //added by mingxuan 2019-5-17
 ***********************************************************/
-
+#include "fs_misc.h"
 //#define NR_DEV 10
 #define NR_FS 10		//modified by mingxuan 2020-10-18
 #define DEV_NAME_LEN 15
@@ -22,9 +22,9 @@ struct device{
 */
 // Replace struct device, added by mingxuan 2020-10-18
 struct vfs{
-    char * fs_name; 			//设备名
-    struct file_op * op;        //指向操作表的一项
-    //int  dev_num;             //设备号	//deleted by mingxuan 2020-10-29
+    	char * fs_name; 			//设备名
+    	struct file_op * op;        //指向操作表的一项
+    	//int  dev_num;             //设备号	//deleted by mingxuan 2020-10-29
 
 	struct super_block *sb;		//added by mingxuan 2020-10-29
 	struct sb_op *s_op;			//added by mingxuan 2020-10-29
@@ -50,9 +50,10 @@ int do_vunlink(const char *path);
 int do_vlseek(int fd, int offset, int whence);
 int do_vcreate(char *pathname);
 int do_vdelete(char *path);
-int do_vopendir(char *dirname);
+int do_vopendir(char *dirname, struct dir_ent *dirent, int mx_ent);
 int do_vcreatedir(char *dirname);
 int do_vdeletedir(char *dirname);
+int do_vchdir(const char *dirname);
 
 void init_vfs();
 void init_file_desc_table();
@@ -60,7 +61,7 @@ void init_fileop_table();
 
 int create(char *pathname);
 int delete(char *path);
-// int opendir(char *dirname);
+int opendir(char *dirname, struct dir_ent *dirent, int mx_ent);
 int createdir(char *dirname);
 int deletedir(char *dirname);
 // int sys_CreateFile(void *uesp);
@@ -76,15 +77,15 @@ int deletedir(char *dirname);
 
 //文件系统的操作函数
 struct file_op{
-    int (*create)   (const char*);
+    	int (*create)   (const char*);
 	int (*open)    (const char* ,int);
 	int (*close)   (int);
 	int (*read)    (int,void * ,int);
 	int (*write)   (int ,const void* ,int);
 	int (*lseek)   (int ,int ,int);
 	int (*unlink)  (const char*);
-    int (*delete) (const char*);
-	int (*opendir) (const char *);
+    	int (*delete) (const char*);
+	int (*opendir) (const char *, struct dir_ent *, int);
 	int (*createdir) (const char *);
 	int (*deletedir) (const char *);
 	int (*get_cwd) (char *);

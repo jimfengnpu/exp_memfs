@@ -7,8 +7,7 @@
 #ifndef	FS_MISC_H
 #define	FS_MISC_H
 
-#include "fat32.h"
-#include "ramfs.h"
+
 
 /**
  * @struct dev_drv_map fs.h "include/sys/fs.h"
@@ -114,11 +113,16 @@ struct dir_entry {
 #define	DIR_ENTRY_SIZE	sizeof(struct dir_entry)
 
 /**
- * @struct file_desc
- * @brief  File Descriptor
+ * @struct dir_ent
+ * @brief  Directory Entry
  */
+struct dir_ent {
+	char name[MAX_FILENAME_LEN];	/**< Filename */
+};
 
-//added by mingxuan 2019-5-17
+#include "fat32.h"
+#include "ramfs.h"
+//本来这些东西就是vfs各个部件共有的, Linux的实现是各种fs统一为inode,但是minios 之前用了联合体的这种形式,于是沿用之
 union ptr_node{
 	struct inode*	fd_inode;	/**< Ptr to the i-node */
 	PFile 	fd_file;	//指向fat32的file结构体
@@ -135,6 +139,28 @@ struct file_desc {
 	int 	flag;	//用于标志描述符是否被使用
 	int 	dev_index;
 };
+// /**
+//  * @struct file_desc
+//  * @brief  File Descriptor
+//  */
+
+// //added by mingxuan 2019-5-17
+// union ptr_node{
+// 	struct inode*	fd_inode;	/**< Ptr to the i-node */
+// 	PFile 	fd_file;	//指向fat32的file结构体
+// 	pRF_REC fd_ram;
+// };
+
+// struct file_desc {
+// 	int		fd_mode;	/**< R or W */
+// 	int		fd_pos;		/**< Current position for R/W. */
+// 	//struct inode*	fd_inode;	/**< Ptr to the i-node */	//deleted by mingxuan 2019-5-17
+	
+// 	//added by mingxuan 2019-5-17
+// 	union 	ptr_node fd_node;
+// 	int 	flag;	//用于标志描述符是否被使用
+// 	int 	dev_index;
+// };
 
 
 /**

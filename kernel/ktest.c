@@ -120,7 +120,7 @@ void initial()
 	//modified by mingxuan 2019-5-21
 	char full_name[30]="orange/";
 	// p_proc_current->task.cwd = "orange";
-	memcpy(p_proc_current->task.cwd, "orange\0", strlen("orange\0"));
+	// memcpy(p_proc_current->task.cwd, "orange\0", strlen("orange\0"));
 	printf("untar:%s\n",full_name);
 	strcat(full_name,INSTALL_FILENAME);
 	untar(full_name);

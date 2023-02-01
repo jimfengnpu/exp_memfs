@@ -8,7 +8,7 @@
 #include "proto.h"
 #include "string.h"
 #include "fs_const.h"
-#include "fs_misc.h"
+#include "vfs.h"
 #include "fat32.h"
 #include "fs.h"
 
@@ -26,18 +26,18 @@ static int rf_find_first_free(){
 }
 static void rf_alloc_clu(int clu){
 	*(RF_FAT_ROOT + clu) = MAX_UNSIGNED_INT;
-	memset(RF_DATA_ROOT+clu,0,sizeof(RF_CLU));
+	memset(RF_DATA_ROOT+clu, 0, sizeof(RF_CLU));
 }
 static pRF_REC rf_write_record(u32 pClu, const char *name, u32 entClu, u32 type, u32 size)
 {
 	pRF_REC rec = (pRF_REC)(RF_DATA_ROOT+pClu);
 	int i;
 	for (i = 0; i < RF_NR_REC;i++){
-		if(rec[i].record_type==RF_NONE){
+		if(rec[i].record_type == RF_NONE){
 			break;
 		}
 	}
-	if(i==RF_NR_REC){
+	if(i == RF_NR_REC){
 		i = rf_find_first_free();
 		if(i<0)
 			return NULL;
@@ -66,6 +66,7 @@ static void init_dir_record(int dir_clu, int parent_dir)
 // ==>... find_path("dir2/file") in dir1: entname:dir2 cont_path:"file":
 // ==>... find_path("file") in dir2: entname:file spos = 0
 // just for understanding, have changed to iteration instead of recursion
+// path: 文件路径; dir_clu: 路径起始文件夹索引; flag: 标志位; find_type: 查找类型(文件/文件夹)
 static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type){
 	char ent_name[RF_MX_ENT_NAME];
 	char *pbuf;
@@ -75,10 +76,11 @@ static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type)
 	// if(path[0]=='/')
 		// path++;
 	//modify:23.1.15: change recursion to iteration
-	int ipos=0, j, len = strlen(path), sep; // parse path with "/"
-	while(ipos < len){
+	int ipos=0, j, len = strlen(path), sep; // parse path with "/" 解析路径
+	//sep: 路径下一级的起始位置
+	while(ipos < len) {
 		sep = 0;
-		for (j = 0; ipos < len; j++)
+		for (j = 0; ipos < len; j++, ipos++)
 		{
 			if(path[ipos] == '/')
 				break;
@@ -103,19 +105,19 @@ static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type)
 				}
 			}
 		}
-		if(i < RF_NR_REC) {
+		if(i < RF_NR_REC) { //在当前目录文件簇找到了
 			path += sep;
 			dir_clu = rec[i].start_cluster;
 			continue;
 		}
-		if(i == RF_NR_REC&&RF_FAT_ROOT[dir_clu]!=MAX_UNSIGNED_INT){
+		if(RF_FAT_ROOT[dir_clu] != MAX_UNSIGNED_INT ) {//当前簇没找到,但目录文件还有下一簇
 			dir_clu = RF_FAT_ROOT[dir_clu];
 			continue;
 			// return findpath(path, RF_FAT_ROOT[dir_clu], flag, find_type); // find in the next record page
 		}
-		//all not found, if flag contains O_CREAT, build an entry for it
-		if(flag&O_CREAT){
-			int inew;
+		//都没找到, 标志位含 O_CREAT, 则建立相应文件(夹)
+		if(flag&O_CREAT) {
+			int inew;//空闲簇索引号
 			inew = rf_find_first_free();
 			if(inew<0)
 				return NULL;
@@ -137,7 +139,7 @@ static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type)
 				}
 				return rf_write_record(dir_clu, ent_name, inew, find_type, 0);
 			}
-			kprintf("create in %d: %s(%d)\n", dir_clu, ent_name, inew);
+			// kprintf("create in %d: %s(%d)\n", dir_clu, ent_name, inew);
 		}
 	}
 	return NULL;
@@ -292,7 +294,7 @@ int rf_write(int fd, const void *buf, int length)
 	int pos = p_proc_current->task.filp[fd]->fd_pos;
 	int fat_offset = pos / RAM_FS_CLUSTER_SIZE;
 	int cluster = frec->start_cluster;
-	while(cluster!=MAX_UNSIGNED_INT){
+	while(cluster != MAX_UNSIGNED_INT){
 		if(fat_offset==0)
 			break;
 		fat_offset--;
@@ -313,7 +315,7 @@ int rf_write(int fd, const void *buf, int length)
 		int pref = (char *)(clu_data + 1) - rf_data;//part in this cluster, fixed 23.1.10 jf
 		memcpy(rf_data, (void*)va2la(proc2pid(p_proc_current), (void*)buf + bytes_write), pref);
 		bytes_write += pref;
-		if(RF_FAT_ROOT[cluster]==MAX_UNSIGNED_INT){
+		if(RF_FAT_ROOT[cluster] == MAX_UNSIGNED_INT){
 			int inew = rf_find_first_free();
 			assert(inew >= 0);
 			rf_alloc_clu(inew);
@@ -367,7 +369,7 @@ int rf_create_dir(const char *dirname)
 	return find_path(dirname, 0, O_CREAT, RF_D)!=NULL?OK:-1;
 }
 
-int rf_open_dir(const char *dirname)
+int rf_open_dir(const char *dirname, struct dir_ent *dirent, int mx_ent)
 {
 	if(find_path(dirname, 0, O_RDWR, RF_D) == NULL)
 		return -1;
@@ -380,8 +382,8 @@ int rf_delete(const char *filename)
 	pRF_REC pREC = find_path(filename, 0, 0, RF_F);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		u32 clu = pREC->start_cluster,nxt_clu=0;
-		while(nxt_clu !=MAX_UNSIGNED_INT){
+		u32 clu = pREC->start_cluster, nxt_clu=0;
+		while(nxt_clu != MAX_UNSIGNED_INT){
 			nxt_clu = RF_FAT_ROOT[clu];
 			RF_FAT_ROOT[clu] = 0;
 			clu = nxt_clu;
@@ -393,10 +395,11 @@ int rf_delete(const char *filename)
 
 int rf_delete_dir(const char *dirname)
 {
+	panic("todo: check empty in rf_delete_dir");
 	pRF_REC pREC = find_path(dirname, 0, 0, RF_D);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		u32 clu = pREC->start_cluster,nxt_clu=0;
+		u32 clu = pREC->start_cluster, nxt_clu=0;
 		while(nxt_clu != MAX_UNSIGNED_INT){
 			nxt_clu = RF_FAT_ROOT[clu];
 			RF_FAT_ROOT[clu] = 0;
