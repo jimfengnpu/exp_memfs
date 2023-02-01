@@ -1,0 +1,66 @@
+<mxfile host="65bd71144e">
+    <diagram id="ZfNHeJrgUkUiowlTX6aV" name="Page-1">
+        <mxGraphModel dx="460" dy="2455" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3100" pageHeight="1200" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="11" value="pathpos==len" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;fontSize=20;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="2" target="13">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="553.3179095037883" y="603.7502203816689" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="2" value="给定path 字符串" style="ellipse;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+                    <mxGeometry x="150" y="420" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="pathpos&amp;lt;len" style="endArrow=classic;html=1;fontSize=20;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.667;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="2" target="20">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="380" y="370" as="sourcePoint"/>
+                        <mxPoint x="570" y="310" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="8" value="NO" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;fontSize=20;" edge="1" parent="1" source="20" target="6">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="750" y="320" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="6" value="return NULL" style="ellipse;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+                    <mxGeometry x="990" y="260" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="YES" style="endArrow=classic;html=1;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.891;entryY=0.834;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="20" target="2">
+                    <mxGeometry x="-0.2206" y="-4" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="633.1799999999998" y="361.3599999999999" as="sourcePoint"/>
+                        <mxPoint x="540" y="450" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="12" value="返回记录" style="ellipse;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+                    <mxGeometry x="630" y="710" width="130" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="YES" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.429;entryY=-0.023;entryDx=0;entryDy=0;entryPerimeter=0;fontSize=20;" edge="1" parent="1" source="13" target="12">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="NO" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=20;" edge="1" parent="1" source="13" target="15">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="如果找到了" style="rhombus;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+                    <mxGeometry x="550" y="560" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="YES" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;fontSize=20;" edge="1" parent="1" source="15" target="17">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="19" value="NO" style="edgeStyle=none;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.618;entryY=1.001;entryDx=0;entryDy=0;entryPerimeter=0;fontSize=20;" edge="1" parent="1" source="15" target="6">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="if flag&amp;amp;O_CREATE" style="rhombus;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+                    <mxGeometry x="940" y="560" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="create &amp;amp; return" style="ellipse;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+                    <mxGeometry x="1000" y="720" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="有该文件夹" style="rhombus;whiteSpace=wrap;html=1;fontSize=20;" vertex="1" parent="1">
+                    <mxGeometry x="570" y="270" width="170" height="80" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

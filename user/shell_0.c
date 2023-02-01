@@ -87,12 +87,12 @@ int touch_u() {
 	strcat(tmp, cmd_buf+6);
 	printf("debug touch_u : tmp : %s\n", tmp);
 	int fd = open(tmp, O_RDWR | O_CREAT);
-    if (fd == -1) {
+	if (fd == -1) {
 		printf("open failed\n");
 		return -1;
 	}
-    printf("touch %s finished\n", tmp);
-    return 0;
+	printf("touch %s finished\n", tmp);
+	return 0;
 }
 
 int write_u() {
@@ -245,7 +245,6 @@ int main(int argc, char *argv[])
 	int stdin = open("dev_tty0", O_RDWR);
 	int stdout = open("dev_tty0", O_RDWR);
 	int stderr = open("dev_tty0", O_RDWR);
-	printf("hello, this is file test\n");
 	fake_shell();
 	// easytest();
 	// testDir();

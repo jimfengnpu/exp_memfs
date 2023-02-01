@@ -59,89 +59,144 @@ static void init_dir_record(int dir_clu, int parent_dir)
 	rf_write_record(dir_clu, "..", parent_dir, RF_D, 0);//dir to parent
 }
 
-//return fat record, NULL if not found
-//"ram/dir1/dir2/file":
-// ==>(vfs)get_index("ram/dir1/dir2/file"): get "ram" and pass "dir1/dir2/file" to funcs in ramfs
-// ==>(ramfs) find_path("dir1/dir2/file") in root: entname: dir1 cont_path:"dir2/file":
-// ==>... find_path("dir2/file") in dir1: entname:dir2 cont_path:"file":
-// ==>... find_path("file") in dir2: entname:file spos = 0
-// just for understanding, have changed to iteration instead of recursion
-static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type){
+// //return fat record, NULL if not found
+// //"ram/dir1/dir2/file":
+// // ==>(vfs)get_index("ram/dir1/dir2/file"): get "ram" and pass "dir1/dir2/file" to funcs in ramfs
+// // ==>(ramfs) find_path("dir1/dir2/file") in root: entname: dir1 cont_path:"dir2/file":
+// // ==>... find_path("dir2/file") in dir1: entname:dir2 cont_path:"file":
+// // ==>... find_path("file") in dir2: entname:file spos = 0
+// // just for understanding, have changed to iteration instead of recursion
+// static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type){
+// 	char ent_name[RF_MX_ENT_NAME];
+// 	//in vfs the path like "ram/shell_0.bin" will be parsed and the first "/" removed
+// 	//so in rf_* functions path is abspath without "/" at the beginning
+// 	//in case the beginning occupy "/", the following added
+// 	// if(path[0]=='/')
+// 		// path++;
+// 	//modify:23.1.15: change recursion to iteration
+// 	int ipos=0, j, len = strlen(path), sep; // parse path with "/"
+// 	while(ipos < len){
+// 		sep = 0;
+// 		for (j = 0; ipos < len; j++, ipos++)
+// 		{
+// 			// assert(len == strlen(path));
+// 			assert(j < len);
+// 			if(path[ipos] == '/')
+// 				break;
+// 			ent_name[j] = path[ipos];
+// 		}
+// 		ent_name[j] = '\0';
+// 		if (ipos < len)
+// 			sep = ++ipos;
+// 		//spos 0 indicates no / in path meet the end part of path
+// 		//note: for record cluster it may exist inner none type record
+// 		pRF_REC rec = (pRF_REC)(RF_DATA_ROOT + dir_clu);
+// 		int i;
+// 		for (i = 0; i < RF_NR_REC; i++)
+// 		{
+// 			if(rec[i].record_type != RF_NONE && strcmp(rec[i].name, ent_name) == 0)
+// 			{
+// 				if(sep == 0 && rec[i].record_type == find_type)
+// 					return rec + i;
+// 				if(sep && rec[i].record_type == RF_D){
+// 					break;
+// 					// return findpath(path + spos, rec[i].start_cluster, flag, find_type);
+// 				}
+// 			}
+// 		}
+// 		if(i < RF_NR_REC) {
+// 			// path += sep;
+// 			dir_clu = rec[i].start_cluster;
+// 			continue;
+// 		}
+// 		if(i == RF_NR_REC && RF_FAT_ROOT[dir_clu] != MAX_UNSIGNED_INT){
+// 			dir_clu = RF_FAT_ROOT[dir_clu];
+// 			continue;
+// 			// return findpath(path, RF_FAT_ROOT[dir_clu], flag, find_type); // find in the next record page
+// 		}
+// 		//all not found, if flag contains O_CREAT, build an entry for it
+// 		if(flag & O_CREAT){
+// 			int inew;
+// 			inew = rf_find_first_free();
+// 			if(inew<0)
+// 				return NULL;
+// 			rf_alloc_clu(inew);
+// 			if (sep)//dir
+// 			{
+// 				rf_write_record(dir_clu, ent_name, inew, RF_D, 0);
+// 				path += sep;
+// 				dir_clu = inew;
+// 				continue;
+// 				// return findpath(path + spos, ni, flag, find_type);
+// 			}
+// 			else//file
+// 			{
+// 				if(find_type == RF_D){
+// 					rf_write_record(inew, ".", inew, RF_D, 0);//dir to itself
+// 					rf_write_record(inew, "..", dir_clu, RF_D, 0);//dir to parent
+// 				}
+// 				return rf_write_record(dir_clu, ent_name, inew, find_type, 0);
+// 			}
+// 			kprintf("create in %d: %s(%d)\n", dir_clu, ent_name, inew);
+// 		} else {
+// 			return NULL;
+// 		}
+// 	}
+// 	return NULL;
+// }
+
+/*
+先前的find_path有几个寻址有点问题
+1.找不到时，没返回NULL
+2.若是创建文件时，未到文件末尾时，还会创建。若上层文件夹不存在时，应返回NULL
+*/
+// 先前没有ram文件夹时，可以直接用ram，现在得先创建ram文件夹再用了，mkdir默认ramfs。
+static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type) {
 	char ent_name[RF_MX_ENT_NAME];
-	char *pbuf;
-	//in vfs the path like "ram/shell_0.bin" will be parsed and the first "/" removed
-	//so in rf_* functions path is abspath without "/" at the beginning
-	//in case the beginning occupy "/", the following added
-	// if(path[0]=='/')
-		// path++;
-	//modify:23.1.15: change recursion to iteration
-	int ipos=0, j, len = strlen(path), sep; // parse path with "/"
-	while(ipos < len){
-		sep = 0;
-		for (j = 0; ipos < len; j++)
-		{
-			if(path[ipos] == '/')
-				break;
-			ent_name[j] = path[ipos];
+	int pathpos = 0, j, len = strlen(path);
+	while(pathpos < len) {
+		for(j = 0; pathpos < len;j++, pathpos++) {
+			if(path[pathpos] == '/') break;
+			ent_name[j] = path[pathpos];
 		}
 		ent_name[j] = '\0';
-		if (ipos < len)
-			sep = ipos + 1;
-		//spos 0 indicates no / in path meet the end part of path
-		//note: for record cluster it may exist inner none type record
 		pRF_REC rec = (pRF_REC)(RF_DATA_ROOT + dir_clu);
 		int i;
-		for (i = 0; i < RF_NR_REC; i++)
-		{
-			if(rec[i].record_type != RF_NONE && strcmp(rec[i].name,ent_name)==0 )
-			{
-				if(sep == 0 && rec[i].record_type == find_type)
-					return rec + i;
-				if(sep && rec[i].record_type == RF_D){
-					break;
-					// return findpath(path + spos, rec[i].start_cluster, flag, find_type);
-				}
+		for(i = 0; i < RF_NR_REC; i++) {
+			if(rec[i].record_type == RF_NONE) continue;
+			if(pathpos < len && rec[i].record_type == RF_D && strcmp(rec[i].name, ent_name) == 0) {
+				dir_clu = rec[i].start_cluster;
+				break;
+			}
+			if(pathpos == len && rec[i].record_type != RF_NONE && strcmp(rec[i].name, ent_name) == 0) {
+				if(rec[i].record_type == find_type) return rec + i;
+				else return NULL;
 			}
 		}
-		if(i < RF_NR_REC) {
-			path += sep;
-			dir_clu = rec[i].start_cluster;
+		if(pathpos < len && i == RF_NR_REC) return NULL;
+		else if(pathpos < len) { // 表示找到了目录，但是还没到文件末尾
+			pathpos++;
 			continue;
 		}
-		if(i == RF_NR_REC&&RF_FAT_ROOT[dir_clu]!=MAX_UNSIGNED_INT){
-			dir_clu = RF_FAT_ROOT[dir_clu];
-			continue;
-			// return findpath(path, RF_FAT_ROOT[dir_clu], flag, find_type); // find in the next record page
-		}
-		//all not found, if flag contains O_CREAT, build an entry for it
-		if(flag&O_CREAT){
-			int inew;
-			inew = rf_find_first_free();
-			if(inew<0)
-				return NULL;
-			rf_alloc_clu(inew);
-			if (sep)//dir
-			{
-				rf_write_record(dir_clu, ent_name, inew, RF_D, 0);
-				
-				path += sep;
-				dir_clu = inew;
-				continue;
-				// return findpath(path + spos, ni, flag, find_type);
-			}
-			else//file
-			{
-				if(find_type==RF_D){
-					rf_write_record(inew, ".", inew, RF_D, 0);//dir to itself
-					rf_write_record(inew, "..", dir_clu, RF_D, 0);//dir to parent
+		if(pathpos == len && i == RF_NR_REC) {
+			if(flag & O_CREAT) {
+				int inew = rf_find_first_free();
+				if(inew < 0) return NULL;
+				rf_alloc_clu(inew);
+				if(find_type == RF_D) {
+					rf_write_record(inew, ".", inew, RF_D, 0);
+					rf_write_record(inew, "..", dir_clu, RF_D, 0);
 				}
 				return rf_write_record(dir_clu, ent_name, inew, find_type, 0);
+			} else {
+				return NULL;
 			}
-			kprintf("create in %d: %s(%d)\n", dir_clu, ent_name, inew);
 		}
 	}
 	return NULL;
 }
+
+
 
 void init_ram_fs()
 {
