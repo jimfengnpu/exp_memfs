@@ -88,7 +88,6 @@ struct file_op{
 	int (*opendir) (const char *, struct dir_ent *, int);
 	int (*createdir) (const char *);
 	int (*deletedir) (const char *);
-	int (*get_cwd) (char *);
 };
 
 //added by mingxuan 2020-10-29
