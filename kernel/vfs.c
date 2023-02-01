@@ -95,7 +95,7 @@ void init_fileop_table()
     f_op_table[3].write = rf_write;
     f_op_table[3].read = rf_read;
     f_op_table[3].lseek = rf_lseek;
-    //     f_op_table[3].opendir = rf_openDir;
+    f_op_table[3].opendir = rf_open_dir;
     f_op_table[3].createdir = rf_create_dir;
     f_op_table[3].deletedir = rf_delete_dir;
 
@@ -224,7 +224,7 @@ static int get_index(char path[]){
         path[i] = path[i+a];
     path[pathlen-a] = '\0';
 
-    //for(i=0;i<NR_DEV;i++)
+//     for(i=0;i<NR_DEV;i++)
     for(i=0;i<NR_FS;i++)    //modified by mingxuan 2020-10-29
     {
         // if(!strcmp(dev_name, device_table[i].dev_name))
