@@ -425,6 +425,7 @@ int rf_create_dir(const char *dirname)
 
 int rf_open_dir(const char *dirname, struct dir_ent *dirent, int mx_ent)
 {
+	panic("todo: process syscall_opendir for ls");
 	if(find_path(dirname, 0, O_RDWR, RF_D) == NULL)
 		return -1;
 	strcpy(p_proc_current->task.cwd, dirname);
