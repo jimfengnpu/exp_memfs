@@ -204,14 +204,18 @@ static void init_vfs_table(){  // modified by mingxuan 2020-10-30
 //path: xxx/yyy   ==>  /cwd/xxx/yyy
 static void process_relative_path(char *path)
 {
+    if(path[0] == '/') return;
     int path_len = strlen(path);
     int cwd_len = strlen(p_proc_current->task.cwd);
+    if(strcmp(p_proc_current->task.cwd, "/") == 0) {
+	cwd_len = 0;
+    }
     int i = path_len - 1;
     for(int j = i + cwd_len + 1; j > cwd_len; j--)
     {
 	path[j] = path[i--];
     }
-    strcpy(path, p_proc_current->task.cwd);
+    memcpy(path, p_proc_current->task.cwd, cwd_len);
     path[cwd_len] = '/';
     path[path_len + cwd_len +1] = '\0';
 }

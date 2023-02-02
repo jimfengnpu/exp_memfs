@@ -157,7 +157,7 @@ static int initialize_processes()
 	for( pid=0 ; pid<NR_PCBS ; pid++ )
 	{
 		//some operations
-		strcpy(p_proc->task.cwd, "");
+		strcpy(p_proc->task.cwd, "/");
 		p_proc++;
 	}
 	
