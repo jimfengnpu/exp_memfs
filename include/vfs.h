@@ -50,10 +50,12 @@ int do_vunlink(const char *path);
 int do_vlseek(int fd, int offset, int whence);
 int do_vcreate(char *pathname);
 int do_vdelete(char *path);
-int do_vopendir(char *dirname, struct dir_ent *dirent, int mx_ent);
+// int do_vopendir(char *dirname, struct dir_ent *dirent, int mx_ent);
+int do_vopendir(char *dirname);
 int do_vcreatedir(char *dirname);
 int do_vdeletedir(char *dirname);
 int do_vchdir(const char *dirname);
+int do_vmkdir(char *dirname);
 
 void init_vfs();
 void init_file_desc_table();
@@ -61,7 +63,8 @@ void init_fileop_table();
 
 int create(char *pathname);
 int delete(char *path);
-int opendir(char *dirname, struct dir_ent *dirent, int mx_ent);
+// int opendir(char *dirname, struct dir_ent *dirent, int mx_ent);
+int opendir(char *dirname);
 int createdir(char *dirname);
 int deletedir(char *dirname);
 // int sys_CreateFile(void *uesp);
@@ -77,15 +80,16 @@ int deletedir(char *dirname);
 
 //文件系统的操作函数
 struct file_op{
-    	int (*create)   (const char*);
+	int (*create)   (const char*);
 	int (*open)    (const char* ,int);
 	int (*close)   (int);
 	int (*read)    (int,void * ,int);
 	int (*write)   (int ,const void* ,int);
 	int (*lseek)   (int ,int ,int);
 	int (*unlink)  (const char*);
-    	int (*delete) (const char*);
-	int (*opendir) (const char *, struct dir_ent *, int);
+	int (*delete) (const char*);
+	// int (*opendir) (const char *, struct dir_ent *, int);
+	int (*opendir) (const char *);
 	int (*createdir) (const char *);
 	int (*deletedir) (const char *);
 };
@@ -95,3 +99,10 @@ struct sb_op{
 	void (*read_super_block) (int);
 	struct super_block* (*get_super_block) (int);
 };
+
+#define VFS_IDNEX_DEV_TTY0 0
+#define VFS_IDNEX_DEV_TTY1 1
+#define VFS_IDNEX_DEV_TTY2 2
+#define VFS_IDNEX_FAT0     3
+#define VFS_INDEX_ORANGE   4
+#define VFS_INDEX_RAMFS    5

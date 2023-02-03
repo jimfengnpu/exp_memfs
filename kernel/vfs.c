@@ -194,10 +194,10 @@ static void init_vfs_table(){  // modified by mingxuan 2020-10-30
     vfs_table[4].s_op = &sb_op_table[0];    //added by mingxuan 2020-10-30
 
     //ramfs
-    vfs_table[5].fs_name = "ram";
-    vfs_table[5].op = &f_op_table[3];
-    vfs_table[5].sb = &super_block[5];
-    vfs_table[5].s_op = &sb_op_table[1];
+    vfs_table[VFS_INDEX_RAMFS].fs_name = "ram";
+    vfs_table[VFS_INDEX_RAMFS].op = &f_op_table[3];
+    vfs_table[VFS_INDEX_RAMFS].sb = &super_block[5];
+    vfs_table[VFS_INDEX_RAMFS].s_op = &sb_op_table[1];
 }
 
 //path: /xxx/yyy  ==>  /xxx/yyy
@@ -299,7 +299,9 @@ int sys_delete(void *uesp) {
 }
 
 int sys_opendir(void *uesp) {
-    return do_vopendir((char *)get_arg(uesp, 1), (struct dir_ent*)get_arg(uesp, 2), (int)get_arg(uesp, 3));
+	return do_vopendir((char *)get_arg(uesp, 1));
+	// return do_vopen()
+    // return do_vopendir((char *)get_arg(uesp, 1), (struct dir_ent*)get_arg(uesp, 2), (int)get_arg(uesp, 3));
 }
 
 int sys_createdir(void *uesp) {
@@ -317,7 +319,8 @@ int sys_chdir(char *arg)
 
 int sys_mkdir(char *arg)
 {
-	return rf_create_dir((const char*)get_arg(arg, 1));
+	return do_vmkdir((char*)get_arg(arg, 1));
+	// return rf_create_dir((const char*)get_arg(arg, 1));
 }
 
 /*======================================================================*
@@ -331,6 +334,8 @@ int do_vopen(const char *path, int flags) {
     
     strcpy(pathname,(char *)path);
     pathname[pathlen] = 0;
+
+	process_relative_path(pathname); // get absolute path
 
     int index;
     int fd = -1;
@@ -370,7 +375,7 @@ int do_vwrite(int fd, const char *buf, int count) {
     int bytes;
     while(f_len)
     {
-        int iobytes = min(512, f_len);
+        int iobytes = min(512, f_len); // todo : avoid hard code
         int i=0;
         for(i=0; i<iobytes; i++)
         {
@@ -426,6 +431,8 @@ int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
     strcpy(pathname,(char *)path);
     pathname[pathlen] = 0;
 
+	process_relative_path(pathname); // get absolute path
+
     int index;
     index = get_index(pathname);
     if(index == -1){
@@ -433,11 +440,11 @@ int do_vcreate(char *filepath) { //modified by mingxuan 2019-5-17
         return -1;
     }
     state = vfs_table[index].op->create(pathname); //modified by mingxuan 2020-10-18
-    if (state == 1) {
-        kprintf("          create file success!");
-    } else {
-		DisErrorInfo(state);
-    }
+    // if (state == 1) {
+    //     kprintf("          create file success!");
+    // } else {
+	// 	DisErrorInfo(state);
+    // }
     return state;
 }
 
@@ -458,7 +465,8 @@ int do_vdelete(char *path) {
     //return device_table[index].op->delete(pathname);
     return vfs_table[index].op->delete(pathname);   //modified by mingxuan 2020-10-18
 }
-int do_vopendir(char *path, struct dir_ent *dirent, int mx_ent) {
+// int do_vopendir(char *path, struct dir_ent *dirent, int mx_ent) {
+int do_vopendir(char *path) {
     int state;
     int cnt = 0;
     int pathlen = strlen(path);
@@ -467,13 +475,14 @@ int do_vopendir(char *path, struct dir_ent *dirent, int mx_ent) {
     strcpy(pathname,path);
     pathname[pathlen] = 0;
 
-    if(strcmp(pathname, "/") == 0){
-	while(cnt < NR_FS && cnt < mx_ent) {
-	    strcpy(dirent[cnt].name, vfs_table[cnt].fs_name);
-	    cnt++;
-	}
-	return 1;
-    }
+	// xu: 这原本是找index？
+    // if(strcmp(pathname, "/") == 0){
+	// 	while(cnt < NR_FS && cnt < mx_ent) {
+	// 		strcpy(dirent[cnt].name, vfs_table[cnt].fs_name);
+	// 		cnt++;
+	// 	}
+	// 	return 1;
+    // }
     int index;
     index = get_index(pathname); //(int)(pathname[1]-'0');
     if(index==-1){
@@ -484,12 +493,13 @@ int do_vopendir(char *path, struct dir_ent *dirent, int mx_ent) {
     //     {
     //         pathname[j] = pathname[j+3];
     //     }
-    state = f_op_table[index].opendir(pathname, dirent, mx_ent);
-    if (state == 1) {
-        kprintf("          open dir success!");
-    } else {
-		DisErrorInfo(state);
-    }    
+    // state = f_op_table[index].opendir(pathname, dirent, mx_ent);
+	state = vfs_table[index].op->opendir(pathname);
+    // if (state == 1) {
+    //     kprintf("          open dir success!");
+    // } else {
+	// 	DisErrorInfo(state);
+    // }    
     return state;
 }
 
@@ -550,11 +560,45 @@ int do_vdeletedir(char *path) {
 
 int do_vchdir(const char *dirname)
 {
-    int pathlen = strlen(dirname);
-    char pathname[MAX_PATH];
-    strcpy(pathname, (char *)dirname);
-    pathname[pathlen] = 0;
-    process_relative_path(pathname);
-    strcpy(p_proc_current->task.cwd, pathname);
-    return 1;
+	int fd = -1;
+	char pathname[MAX_PATH];
+	strcpy(pathname, dirname);
+	process_relative_path(pathname);
+	// 特判"/"
+	if(strcmp(pathname, "/") == 0) {
+		strcpy(p_proc_current->task.cwd, pathname);
+		return 0; // todo: 待和姜峰讨论一下回到根目录的返回值，这本质是fd
+	}
+	if(strcmp(pathname, "/ram") == 0) {
+		fd = vfs_table[VFS_INDEX_RAMFS].op->opendir(pathname+1);
+	}
+	else {
+		int index = get_index(pathname);
+		fd = vfs_table[index].op->opendir(pathname);
+	}
+	if(fd != -1) {
+		strcpy(pathname, dirname);
+		process_relative_path(pathname);
+		strcpy(p_proc_current->task.cwd, pathname); 
+		// 关于这段鬼畜代码的解释：因为get_index后把文件名改了，所以这里要把它改回来
+	}
+	return fd;
+}
+
+int do_vmkdir(char *path) {
+	// 目前目录文件只支持ramfs
+	int pathlen = strlen(path);
+	char pathname[MAX_PATH];
+	strcpy(pathname, path);
+	pathname[pathlen] = 0;
+	process_relative_path(pathname);
+	if(strcmp(pathname, "/ram") == 0) {
+		/*
+		 * 由于目前的系统没有挂载功能，所以先在这里创建/ram文件夹
+		 * 该文件夹是ramfs的根目录，底下的文件都是ramfs的文件
+		 */
+		return vfs_table[VFS_INDEX_RAMFS].op->createdir(pathname+1);
+	}
+	int index = get_index(pathname);
+	return vfs_table[index].op->createdir(pathname);
 }

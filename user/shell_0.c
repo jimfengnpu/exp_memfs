@@ -51,14 +51,12 @@ char cmd_buf[MAX_CMD_LEN];
 char tmp[TMP_BUF_LEN];
 
 int pwd_u() {
-
 	int ret = get_cwd(tmp);
 	printf("cwd: %s\n", tmp);
 	return ret;
 }
 
 int chdir_u() {
-	
 	strcpy(tmp, cmd_buf+3);
 	if(chdir(tmp) == -1) {
 		printf("chdir failed\n");
@@ -69,8 +67,7 @@ int chdir_u() {
 }
 
 int mkdir_u() {
-	
-	strcpy(tmp, cmd_buf+6);
+	strcpy(tmp, cmd_buf+6); // get file dir name
 	if(mkdir(tmp) == -1) {
 		printf("mkdir failed\n");
 		return -1;
@@ -81,11 +78,7 @@ int mkdir_u() {
 }
 
 int touch_u() {
-	
-	get_cwd(tmp);
-	strcat(tmp, "/");
-	strcat(tmp, cmd_buf+6);
-	printf("debug touch_u : tmp : %s\n", tmp);
+	strcpy(tmp, cmd_buf+6);
 	int fd = open(tmp, O_RDWR | O_CREAT);
 	if (fd == -1) {
 		printf("open failed\n");
@@ -98,47 +91,33 @@ int touch_u() {
 int write_u() {
 	// this func can support this kind of sentence:
 	// write a hello world
-	get_cwd(tmp);
-	printf("%s\n", tmp);
-	strcat(tmp, "/");
-	int tmp_len = strlen(tmp);
-    int pre_len = tmp_len;
-	for(int i = 6; i < strlen(cmd_buf); i++) {
-		tmp[tmp_len++] = cmd_buf[i];
-		if(cmd_buf[i] == ' ') {
-			tmp[tmp_len-1] = '\0';
+    int i;
+	for(i = 6;i < strlen(cmd_buf);i++) {
+		if(cmd_buf[i] != ' ') {
+			tmp[i-6] = cmd_buf[i];
+		} else {
+			tmp[i-6] = '\0';
 			break;
 		}
 	}
-	printf("tmp: %s\n");
 	int fd = open(tmp, O_RDWR | O_CREAT);
 	if (fd == -1) {
 		printf("open failed\n");
 		return -1;
 	}
 	lseek(fd, 0, SEEK_SET);
-	int write_len = strlen(cmd_buf) - (tmp_len-pre_len+6);
-    printf("write string: %s\n", cmd_buf+tmp_len-pre_len+6);
-	int ret = write(fd, cmd_buf+tmp_len-pre_len+6, write_len);
+	int ret = write(fd, cmd_buf+i+1, strlen(cmd_buf)-i-1);
 	if (ret == -1) {
 		printf("write failed\n");
 		return -1;
 	}
-	else if(ret < write_len) {
-		printf("write %s failed, only %d bytes written\n", tmp, ret);
-		return -1;
-	}
-	else
-		printf("write %s finished\n", tmp);
-    close(fd);
+	close(fd);
 	return 0;
 }
 
 int cat_u() {
-	get_cwd(tmp);
-	strcat(tmp, "/");
-	strcat(tmp, cmd_buf+4);
-    printf("cat tmp %s\n", tmp);
+	strcpy(tmp, cmd_buf+4);
+    printf("cat %s\n", tmp);
 	int fd = open(tmp, O_RDWR | O_CREAT);
 	if (fd == -1) {
 		printf("open failed\n");
@@ -251,35 +230,5 @@ int main(int argc, char *argv[])
 	// while(1) {
 	// 	fake_shell();
 	// 	test();
-	// }
-
-	// int fd;
-	// printf("cmd_char [path]\n");
-	// printf("w write\nr read\nd delete\n");
-	// while (1)
-	// {
-	// 	gets(buf);
-	// 	switch (buf[0])
-	// 	{
-	// 	case 'r':
-	// 		fd =open(buf + 2, O_RDWR);
-	// 		if(fd==-1)
-	// 			printf("err,maybe not exist\n");
-	// 		else{
-	// 			read(fd, buf, 25);
-	// 			printf("%s\n", buf);
-	// 		}
-	// 		break;
-	// 	case 'w':
-	// 		fd = open(buf + 2, O_RDWR|O_CREAT);
-	// 		gets(buf);
-	// 		write(fd, buf, strlen(buf));
-	// 		break;
-	// 	case 'd':
-	// 		if(delete(buf + 2)!=1)deletedir(buf+2);
-	// 		break;
-	// 	default:
-	// 		break;
-	// 	}
 	// }
 }

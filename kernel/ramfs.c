@@ -306,6 +306,7 @@ int rf_close(int fd)
 
 // 先前写得rf_read没有更新pos，并且在跨扇区读入有问题
 // 许安杰重写了这一部分
+// ramfs read
 int rf_read(int fd, void *buf, int length)
 {
 	if (!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
@@ -338,7 +339,6 @@ int rf_read(int fd, void *buf, int length)
 	return bytes_read;
 }
 
-
 //return bytes have been write
 int rf_write(int fd, const void *buf, int length)
 {
@@ -352,7 +352,7 @@ int rf_write(int fd, const void *buf, int length)
 		if(fat_offset==0)
 			break;
 		fat_offset--;
-		if(RF_FAT_ROOT[cluster]==MAX_UNSIGNED_INT){
+		if(RF_FAT_ROOT[cluster] == MAX_UNSIGNED_INT){
 			int inew = rf_find_first_free();
 			assert(inew >= 0);
 			rf_alloc_clu(inew);
@@ -415,21 +415,47 @@ int rf_lseek(int fd, int offset, int whence)
 
 int rf_create(const char *pathname)
 {
-	return find_path(pathname, 0, O_CREAT, RF_F)!=NULL?OK:-1;
+	return find_path(pathname, 0, O_CREAT, RF_F) != NULL ? OK : -1;
 }
 
 int rf_create_dir(const char *dirname)
 {
-	return find_path(dirname, 0, O_CREAT, RF_D)!=NULL?OK:-1;
+	return find_path(dirname, 0, O_CREAT, RF_D) != NULL ? OK : -1;
 }
 
-int rf_open_dir(const char *dirname, struct dir_ent *dirent, int mx_ent)
+int rf_open_dir(const char *dirname)
 {
-	panic("todo: process syscall_opendir for ls");
-	if(find_path(dirname, 0, O_RDWR, RF_D) == NULL)
+	// 打开文件夹相当于打开目录文件，整体逻辑和rf_open类似
+	int fd = -1;
+	int name_len = strlen(dirname);
+	if(name_len > MAX_PATH)
 		return -1;
-	strcpy(p_proc_current->task.cwd, dirname);
-	return OK;
+	// find a free slot in PROC::filp[]
+	int i;
+	for(i = 0;i < NR_FILES;i++) {
+		if(p_proc_current->task.filp[i] == 0) {
+			fd = i;
+			break;
+		}
+	}
+	if(i == NR_FILES)
+		return -1;
+	for(i = 0;i < NR_FILE_DESC;i++)
+		if(f_desc_table[i].flag == 0)
+			break;
+	if(i == NR_FILE_DESC)
+		return -1;
+	pRF_REC fd_ram = find_path(dirname, 0, O_RDWR, RF_D);
+	if(fd_ram == NULL)
+		return -1;
+	// update f_desc_table
+	p_proc_current->task.filp[fd] = &f_desc_table[i];
+	f_desc_table[i].flag = 1;
+	f_desc_table[i].fd_node.fd_ram = fd_ram;
+	f_desc_table[i].dev_index = VFS_INDEX_RAMFS;
+	f_desc_table[i].fd_mode = O_RDWR; // 应该是只读，但目前文件flag还不完善
+	f_desc_table[i].fd_pos = 0;
+	return fd;
 }
 
 int rf_delete(const char *filename)

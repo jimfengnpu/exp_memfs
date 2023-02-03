@@ -113,7 +113,8 @@ STATE CreateDir(const char *dirname)
 	return OK;
 }
 
-STATE OpenDir(const char* dirname, struct dir_ent *dirent, int mx_ent)
+// STATE OpenDir(const char* dirname, struct dir_ent *dirent, int mx_ent)
+STATE OpenDir(const char* dirname)
 {
 	DWORD parentCluster=0;
 	CHAR fullpath[256]={0},parent[256]={0},name[256]={0};

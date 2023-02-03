@@ -1,6 +1,6 @@
 {
 	"editor.detectIndentation": false,
-	"editor.tabSize": 8,
+	"editor.tabSize": 4,
 	"editor.insertSpaces": false,
 	"files.associations": {
 		"*.h": "c",

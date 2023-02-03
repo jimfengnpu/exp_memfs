@@ -36,7 +36,8 @@ int rf_write(int fd, const void *buf, int length);
 int rf_lseek(int fd, int offset, int whence);
 int rf_create(const char *filename);
 int rf_create_dir(const char *dirname);
-int rf_open_dir(const char *dirname, struct dir_ent *dirent, int mx_ent);
+// int rf_open_dir(const char *dirname, struct dir_ent *dirent, int mx_ent);
+int rf_open_dir(const char *dirname);
 int rf_delete(const char *filename);
 int rf_delete_dir(const char *dirname);
 #endif

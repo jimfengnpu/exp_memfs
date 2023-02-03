@@ -108,8 +108,8 @@ STATE CreateFile(const char *filename);
 STATE OpenFile(const char *filename,int mode);
 STATE CloseFile(int fd);
 #include "fs_misc.h"
-STATE OpenDir(const char *dirname, struct dir_ent *dirent, int mx_ent);
-
+// STATE OpenDir(const char *dirname, struct dir_ent *dirent, int mx_ent);
+STATE OpenDir(const char *dirname);
 STATE ReadFile(int fd,void *buf, int length);
 STATE WriteFile(int fd, const void *buf, int length);
 STATE CopyFileIn(PCHAR sfilename,PCHAR dfilename);
