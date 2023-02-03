@@ -22,9 +22,9 @@ struct device{
 */
 // Replace struct device, added by mingxuan 2020-10-18
 struct vfs{
-    	char * fs_name; 			//设备名
-    	struct file_op * op;        //指向操作表的一项
-    	//int  dev_num;             //设备号	//deleted by mingxuan 2020-10-29
+	char * fs_name; 			//设备名
+	struct file_op * op;        //指向操作表的一项
+	//int  dev_num;             //设备号	//deleted by mingxuan 2020-10-29
 
 	struct super_block *sb;		//added by mingxuan 2020-10-29
 	struct sb_op *s_op;			//added by mingxuan 2020-10-29

@@ -198,7 +198,6 @@ static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type)
 }
 
 
-
 void init_ram_fs()
 {
 	//in syscall we can only use 3G~3G+128M so we init the two at the beginning
@@ -239,7 +238,7 @@ int rf_open(const char *path, int mode)
 	assert(i < NR_FILE_DESC);
 
 	pRF_REC fd_ram = find_path(path, 0, mode, RF_F);//from root
-	if(fd_ram){
+	if(fd_ram) {
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
 		

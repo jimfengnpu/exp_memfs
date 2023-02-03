@@ -466,42 +466,42 @@ int do_vdelete(char *path) {
     return vfs_table[index].op->delete(pathname);   //modified by mingxuan 2020-10-18
 }
 // int do_vopendir(char *path, struct dir_ent *dirent, int mx_ent) {
-int do_vopendir(char *path) {
-    int state;
-    int cnt = 0;
-    int pathlen = strlen(path);
-    char pathname[MAX_PATH];
+// int do_vopendir(char *path) {
+//     int state;
+//     int cnt = 0;
+//     int pathlen = strlen(path);
+//     char pathname[MAX_PATH];
     
-    strcpy(pathname,path);
-    pathname[pathlen] = 0;
+//     strcpy(pathname,path);
+//     pathname[pathlen] = 0;
 
-	// xu: 这原本是找index？
-    // if(strcmp(pathname, "/") == 0){
-	// 	while(cnt < NR_FS && cnt < mx_ent) {
-	// 		strcpy(dirent[cnt].name, vfs_table[cnt].fs_name);
-	// 		cnt++;
-	// 	}
-	// 	return 1;
-    // }
-    int index;
-    index = get_index(pathname); //(int)(pathname[1]-'0');
-    if(index==-1){
-        kprintf("pathname error!\n");
-        return -1;
-    }
-    //     for(int j=0;j<= pathlen-3;j++)
-    //     {
-    //         pathname[j] = pathname[j+3];
-    //     }
-    // state = f_op_table[index].opendir(pathname, dirent, mx_ent);
-	state = vfs_table[index].op->opendir(pathname);
-    // if (state == 1) {
-    //     kprintf("          open dir success!");
-    // } else {
-	// 	DisErrorInfo(state);
-    // }    
-    return state;
-}
+// 	// xu: 这原本是找index？
+//     // if(strcmp(pathname, "/") == 0){
+// 	// 	while(cnt < NR_FS && cnt < mx_ent) {
+// 	// 		strcpy(dirent[cnt].name, vfs_table[cnt].fs_name);
+// 	// 		cnt++;
+// 	// 	}
+// 	// 	return 1;
+//     // }
+//     int index;
+//     index = get_index(pathname); //(int)(pathname[1]-'0');
+//     if(index==-1){
+//         kprintf("pathname error!\n");
+//         return -1;
+//     }
+//     //     for(int j=0;j<= pathlen-3;j++)
+//     //     {
+//     //         pathname[j] = pathname[j+3];
+//     //     }
+//     // state = f_op_table[index].opendir(pathname, dirent, mx_ent);
+// 	state = vfs_table[index].op->opendir(pathname);
+//     // if (state == 1) {
+//     //     kprintf("          open dir success!");
+//     // } else {
+// 	// 	DisErrorInfo(state);
+//     // }    
+//     return state;
+// }
 
 int do_vcreatedir(char *path) {
     int state;
@@ -556,6 +556,29 @@ int do_vdeletedir(char *path) {
 		DisErrorInfo(state);
     }   
     return state;
+}
+
+int do_vopendir(char *pah)
+{
+	int fd = -1;
+	char pathname[MAX_PATH];
+	strcpy(pathname, pah);
+	process_relative_path(pathname);
+	// 特判"/"
+	if(strcmp(pathname, "/") == 0) {
+		return 0; // todo: 待和姜峰讨论一下回到根目录的返回值，这本质是fd
+	}
+	if(strcmp(pathname, "/ram") == 0) {
+		fd = vfs_table[VFS_INDEX_RAMFS].op->opendir(pathname+1);
+	}
+	else {
+		int index = get_index(pathname);
+		if(index == -1) {
+			return -1;
+		}
+		fd = vfs_table[index].op->opendir(pathname);
+	}
+	return fd;
 }
 
 int do_vchdir(const char *dirname)

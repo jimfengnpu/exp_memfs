@@ -44,11 +44,14 @@
 #include "stdio.h"
 #include "vfs.h"
 #include "assert.h"
+#include "ramfs.h"
 
 #define MAX_CMD_LEN 600
 char cmd_buf[MAX_CMD_LEN];
 #define TMP_BUF_LEN 600
 char tmp[TMP_BUF_LEN];
+#define DATA_BUF_LEN 600
+char data_buf[DATA_BUF_LEN];
 
 int pwd_u() {
 	int ret = get_cwd(tmp);
@@ -132,16 +135,37 @@ int cat_u() {
 	else if(ret >= 0) {
 		cmd_buf[ret] = '\0';
 		printf("%s", cmd_buf);
-        close(fd);
+        printf("\n data len: %d\n", ret);
+		close(fd);
     } else 
 		return -1;
     
 	return 0;
 }
 
+int ls_u() {
+	get_cwd(tmp);
+	int fd = opendir(tmp);
+	if (fd == -1) {
+		printf("open failed\n");
+		return -1;
+	}
+	lseek(fd, 0, SEEK_SET);
+	while(read(fd, data_buf, sizeof(RAM_FS_RECORD)) == sizeof(RAM_FS_RECORD)) {
+		RAM_FS_RECORD *p = (RAM_FS_RECORD *)data_buf;
+		if(p->record_type == RF_F) {
+			printf("file: %s\n", p->name);
+		} else if(p->record_type == RF_D) {
+			printf("dir: %s\n", p->name);
+		}
+	}
+	close(fd);
+	return 0; 
+}
+
 // Make the function an element of the array
 // so that it can be called by the index
-#define CMD_NUM 6
+#define CMD_NUM 7
 char *cmd_name[CMD_NUM] = {
 	"pwd",
 	"cd",
@@ -149,6 +173,7 @@ char *cmd_name[CMD_NUM] = {
 	"touch",
 	"write",
 	"cat",
+	"ls",
 };
 int (*cmd_table[CMD_NUM])() = {
 	pwd_u,
@@ -157,6 +182,7 @@ int (*cmd_table[CMD_NUM])() = {
 	touch_u,
 	write_u,
 	cat_u,
+	ls_u,
 };
 
 void easytest() {
