@@ -219,8 +219,8 @@ static void process_relative_path(char *path)
     path[cwd_len] = '/';
     path[path_len + cwd_len +1] = '\0';
 	int offs = 0, dir_stack[MAX_PATH], top = 0;
-	for( i = 0; i <= path_len + cwd_len; i++) {
-		if(path[i] == '/') {
+	for( i = 0; i <= path_len + cwd_len + 1; i++) {
+		if((path[i] == '/' || i == path_len + cwd_len + 1) && path[i - 1] != '/') {
 			if(top) {
 				if(strncmp(path + dir_stack[top], "/.", i - dir_stack[top]) == 0) {
 					offs += i - dir_stack[top];
@@ -232,6 +232,9 @@ static void process_relative_path(char *path)
 			dir_stack[++top] = i;
 		}
 		path[i - offs] = path[i];
+	}
+	if(strcmp(path, "") == 0) {
+		strcpy(path, "/");
 	}
 }
 

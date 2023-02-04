@@ -65,7 +65,7 @@ int chdir_u() {
 		printf("chdir failed\n");
 		return -1;
 	}
-	pwd_u();
+	// pwd_u();
 	return 0;
 }
 
@@ -145,6 +145,9 @@ int cat_u() {
 
 int ls_u() {
 	get_cwd(tmp);
+	if(cmd_buf[3]!= '\0') {
+		strcpy(tmp, cmd_buf + 3);
+	}
 	int fd = opendir(tmp);
 	if (fd == -1) {
 		printf("open failed\n");
@@ -154,18 +157,22 @@ int ls_u() {
 	while(read(fd, data_buf, sizeof(RAM_FS_RECORD)) == sizeof(RAM_FS_RECORD)) {
 		RAM_FS_RECORD *p = (RAM_FS_RECORD *)data_buf;
 		if(p->record_type == RF_F) {
-			printf("file: %s\n", p->name);
+			printf("file: %s size:%d\n", p->name, p->size);
 		} else if(p->record_type == RF_D) {
-			printf("dir: %s\n", p->name);
+			printf("dir: %s size:%d\n", p->name, p->size);
 		}
 	}
 	close(fd);
 	return 0; 
 }
 
+int exec_u() {
+	exec(cmd_buf+5);
+	return 0;
+}
 // Make the function an element of the array
 // so that it can be called by the index
-#define CMD_NUM 7
+#define CMD_NUM 8
 char *cmd_name[CMD_NUM] = {
 	"pwd",
 	"cd",
@@ -174,6 +181,7 @@ char *cmd_name[CMD_NUM] = {
 	"write",
 	"cat",
 	"ls",
+	"exec",
 };
 int (*cmd_table[CMD_NUM])() = {
 	pwd_u,
@@ -183,6 +191,7 @@ int (*cmd_table[CMD_NUM])() = {
 	write_u,
 	cat_u,
 	ls_u,
+	exec_u,
 };
 
 void easytest() {
@@ -224,7 +233,9 @@ void easytest() {
 void fake_shell() {
 	while (1)
 	{
-		printf("\nminiOS:/ $ ");
+		memset(cmd_buf, 0, MAX_CMD_LEN);
+		get_cwd(tmp);
+		printf("\nminiOS:%s $ ",tmp);
 		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
 		{
 			int i;
