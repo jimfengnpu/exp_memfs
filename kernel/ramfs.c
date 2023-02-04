@@ -333,33 +333,36 @@ int rf_close(int fd)
 // ramfs read
 int rf_read(int fd, void *buf, int length)
 {
-	if (!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
-		return -1;
-	pRF_REC frec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
-	int pos = p_proc_current->task.filp[fd]->fd_pos;
-	int fat_offset = pos / RAM_FS_CLUSTER_SIZE;
-	int cluster = frec->start_cluster;
-	while(RF_FAT_ROOT[cluster] != MAX_UNSIGNED_INT){
-		if(fat_offset==0)
-			break;
-		fat_offset--;
-		cluster = RF_FAT_ROOT[cluster];
+	if(!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
+		return -1; // 权限检查
+	pRF_REC pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
+	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
+	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
+	assert(cur_pos < pf_rec->size); // 偏移指针肯定小于文件大小
+	// 得到当前的起始簇
+	int cnt_clu = 0;
+	int st_clu = pf_rec->start_cluster;
+	while(cnt_clu != cur_nr_clu) {
+		cnt_clu++;
+		st_clu = RF_FAT_ROOT[st_clu];
 	}
-	pRF_CLU clu_data = RF_DATA_ROOT + cluster;
-	char *rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
+	assert(st_clu != MAX_UNSIGNED_INT); // 不可能是-1
+	pRF_CLU clu_data = RF_DATA_ROOT + st_clu;
+	char *rf_data = (char *)clu_data + cur_pos % RAM_FS_CLUSTER_SIZE;
 	int bytes_read = 0;
-	while(bytes_read < length && cluster != MAX_UNSIGNED_INT) {
-		int cluster_can_read = min(length - bytes_read, RAM_FS_CLUSTER_SIZE - (pos % RAM_FS_CLUSTER_SIZE));//mod jf:change 512 to RAM_FS_CLUSTER_SIZE,avoid hard coding
-		assert(cluster_can_read >= 0 && cluster_can_read <= RAM_FS_CLUSTER_SIZE);
-		memcpy((void*)va2la(proc2pid(p_proc_current), buf + bytes_read), rf_data, cluster_can_read);
-		bytes_read += cluster_can_read;
-		pos += cluster_can_read;
-		cluster = RF_FAT_ROOT[cluster];
-		clu_data = RF_DATA_ROOT + cluster;
-		rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
+	while(bytes_read < length && st_clu != MAX_UNSIGNED_INT) {
+		int bytes_left = (char *)(clu_data + 1) - rf_data;
+		int bytes_to_read = min(bytes_left, length - bytes_read);
+		bytes_to_read = min(bytes_to_read, pf_rec->size - cur_pos);
+		memcpy((void *)va2la(proc2pid(p_proc_current), buf + bytes_read), rf_data, bytes_to_read);
+		bytes_read += bytes_to_read;
+		st_clu = RF_FAT_ROOT[st_clu];
+		clu_data = RF_DATA_ROOT + st_clu;
+		rf_data = (char *)clu_data;
 	}
-	// *((char*) buf + bytes_read) = '\0';
-	p_proc_current->task.filp[fd]->fd_pos = pos;
+	// 返回的字节数要么是length，要么是文件剩余的字节数
+	assert(bytes_read == length || bytes_read == pf_rec->size - p_proc_current->task.filp[fd]->fd_pos);
+	p_proc_current->task.filp[fd]->fd_pos += bytes_read; // 更新偏移指针
 	return bytes_read;
 }
 
