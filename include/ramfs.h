@@ -22,14 +22,14 @@ typedef union{
 	RAM_FS_RECORD entry[RF_NR_REC];
 	char data[RAM_FS_CLUSTER_SIZE];
 } RF_CLU;
-typedef RAM_FS_RECORD *pRF_REC;
-typedef RF_CLU *pRF_CLU;
-typedef u32 RF_FAT, *pRF_FAT;
+typedef RAM_FS_RECORD *p_rf_rec;
+typedef RF_CLU *p_rf_clu;
+typedef u32 RF_FAT, *p_rf_fat;
 #include "fs.h"
 #include "fs_misc.h"
 #define RAM_FS_DATA_BASE	(RAM_FS_BASE + sizeof(RF_FAT) * RAM_FS_NR_CLU)
 void init_ram_fs();
-pRF_REC find_path(const char *path, pRF_REC dir_rec, int flag, int find_type);
+p_rf_rec find_path(const char *path, p_rf_rec dir_rec, int flag, int find_type);
 int rf_open(const char *path, int mode);
 int rf_close(int fd);
 int rf_read(int fd, void *buf, int length);
