@@ -27,7 +27,7 @@ static int rf_find_first_free(){
 }
 static void rf_alloc_clu(int clu){
 	*(RF_FAT_ROOT + clu) = MAX_UNSIGNED_INT;
-	memset(RF_DATA_ROOT+clu, 0, sizeof(RF_CLU));
+	memset(RF_DATA_ROOT+clu, 0, sizeof(rf_clu));
 }
 
 static u32 check_dir_size(u32 pClu)
@@ -44,7 +44,7 @@ static u32 check_dir_size(u32 pClu)
 			break;
 		}
 	}
-	dir_size += (i + 1)*sizeof(RAM_FS_RECORD);
+	dir_size += (i + 1)*sizeof(rf_record);
 	return dir_size;
 }
 
@@ -57,10 +57,10 @@ static void init_dir_record(int dir_clu, p_rf_rec parent_rec)
 	p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT + dir_clu);
 	strcpy(rec->name, ".");
 	rec->record_type = RF_D;
-	rec->size = sizeof(RAM_FS_RECORD);
+	rec->size = sizeof(rf_record);
 	rec->start_cluster = dir_clu;
 	if(parent_rec != NULL) {
-		rec->size += sizeof(RAM_FS_RECORD);
+		rec->size += sizeof(rf_record);
 		rec++;
 		strcpy(rec->name, "..");
 		rec->record_type = RF_D;
@@ -558,7 +558,7 @@ int rf_delete_dir(const char *dirname)
 	p_rf_rec pREC = find_path(dirname, NULL, 0, RF_D);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		if(check_dir_size(pREC->start_cluster) <= 2*sizeof(RAM_FS_RECORD)) {
+		if(check_dir_size(pREC->start_cluster) <= 2*sizeof(rf_record)) {
 			return -ENOTEMPTY;
 		}
 		u32 clu = pREC->start_cluster, nxt_clu=0;
