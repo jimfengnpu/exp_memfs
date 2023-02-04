@@ -558,7 +558,7 @@ int rf_delete_dir(const char *dirname)
 	p_rf_rec pREC = find_path(dirname, NULL, 0, RF_D);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		if(check_dir_size(pREC->start_cluster) <= 2*sizeof(rf_record)) {
+		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_record)) {
 			return -ENOTEMPTY;
 		}
 		u32 clu = pREC->start_cluster, nxt_clu=0;
