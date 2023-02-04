@@ -28,27 +28,59 @@ static void rf_alloc_clu(int clu){
 	*(RF_FAT_ROOT + clu) = MAX_UNSIGNED_INT;
 	memset(RF_DATA_ROOT+clu, 0, sizeof(RF_CLU));
 }
-static pRF_REC rf_write_record(u32 pClu, const char *name, u32 entClu, u32 type, u32 size)
+
+static u32 check_dir_size(u32 pClu)
 {
+	u32 dir_size = 0;
+	while(RF_FAT_ROOT[pClu] != MAX_UNSIGNED_INT) {
+		dir_size += RAM_FS_CLUSTER_SIZE;
+		pClu = RF_FAT_ROOT[pClu];
+	}
 	pRF_REC rec = (pRF_REC)(RF_DATA_ROOT+pClu);
 	int i;
-	for (i = 0; i < RF_NR_REC;i++){
-		if(rec[i].record_type == RF_NONE){
+	for (i = RF_NR_REC - 1; i >= 0; i--) {
+		if(rec[i].record_type != RF_NONE){
 			break;
 		}
 	}
-	if(i == RF_NR_REC){
-		i = rf_find_first_free();
-		if(i<0)
-			return NULL;
-		rf_alloc_clu(i);
-		RF_FAT_ROOT[pClu] = i;
-		return rf_write_record(i, name, entClu, type, size);
+	dir_size += (i + 1)*sizeof(RAM_FS_RECORD);
+	return dir_size;
+}
+
+//对于文件夹,传入的size无用
+static pRF_REC rf_write_record(u32 pClu, const char *name, u32 entClu, u32 type, u32 size)
+{
+	pRF_REC rec = (pRF_REC)(RF_DATA_ROOT+pClu);
+	int i, inew;
+	for (i = 0; i < RF_NR_REC;){
+		if(rec[i].record_type == RF_NONE){
+			break;
+		}
+		i++;
+		if(i == RF_NR_REC) {
+			inew = rf_find_first_free();
+			if(inew<0)
+				return NULL;
+			rf_alloc_clu(inew);
+			RF_FAT_ROOT[pClu] = inew;
+			// return rf_write_record(i, name, entClu, type, size);
+			pClu = inew;
+			i = 0;
+		}
 	}
+	
 	strcpy(rec[i].name, name);
 	rec[i].record_type = type;
-	rec[i].size = size;
+	if(type == RF_F) rec[i].size = size;
+	else if(type == RF_D) rec[i].size = check_dir_size(entClu);
 	rec[i].start_cluster = entClu;
+	u32 new_size = check_dir_size(pClu);
+	pRF_REC current = find_path(".", pClu, 0, RF_D);
+	current->size = new_size;
+	pRF_REC parent = find_path("..", pClu, 0, RF_D);
+	if(parent != NULL) {
+		parent->size = new_size;
+	}
 	return rec+i;
 }
 
@@ -152,7 +184,7 @@ static void init_dir_record(int dir_clu, int parent_dir)
 2.若是创建文件时，未到文件末尾时，还会创建。若上层文件夹不存在时，应返回NULL
 */
 // 先前没有ram文件夹时，可以直接用ram，现在得先创建ram文件夹再用了，mkdir默认ramfs。
-static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type) {
+pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type) {
 	char ent_name[RF_MX_ENT_NAME];
 	int pathpos = 0, j, len = strlen(path);
 	while(pathpos < len) {
@@ -174,7 +206,12 @@ static pRF_REC find_path(const char *path, u32 dir_clu, int flag, int find_type)
 				else return NULL;
 			}
 		}
-		if(pathpos < len && i == RF_NR_REC) return NULL;
+		if(pathpos < len && i == RF_NR_REC) {
+			if(RF_FAT_ROOT[dir_clu] == MAX_UNSIGNED_INT)
+				return NULL;
+			dir_clu = RF_FAT_ROOT[dir_clu];
+			continue;
+		}
 		else if(pathpos < len) { // 表示找到了目录，但是还没到文件末尾
 			pathpos++;
 			continue;
@@ -313,7 +350,7 @@ int rf_read(int fd, void *buf, int length)
 	pRF_REC pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
 	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
-	assert(cur_pos < pf_rec->size); // 偏移指针肯定小于文件大小
+	// assert(cur_pos <= pf_rec->size); // 偏移指针肯定小于文件大小 恰好到文件尾的时候，不该报assert吧
 	// 得到当前的起始簇
 	int cnt_clu = 0;
 	int st_clu = pf_rec->start_cluster;
