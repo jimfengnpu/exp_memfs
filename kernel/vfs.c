@@ -218,6 +218,21 @@ static void process_relative_path(char *path)
     memcpy(path, p_proc_current->task.cwd, cwd_len);
     path[cwd_len] = '/';
     path[path_len + cwd_len +1] = '\0';
+	int offs = 0, dir_stack[MAX_PATH], top = 0;
+	for( i = 0; i <= path_len + cwd_len; i++) {
+		if(path[i] == '/') {
+			if(top) {
+				if(strncmp(path + dir_stack[top], "/.", i - dir_stack[top]) == 0) {
+					offs += i - dir_stack[top];
+				}else if(strncmp(path + dir_stack[top], "/..", i - dir_stack[top]) == 0) {
+					if(top > 1) top--;
+					offs += i - dir_stack[top];
+				}
+			}
+			dir_stack[++top] = i;
+		}
+		path[i - offs] = path[i];
+	}
 }
 
 static int get_index(char path[]){
@@ -558,22 +573,23 @@ int do_vdeletedir(char *path) {
     return state;
 }
 
-int do_vopendir(char *pah)
+int do_vopendir(char *path)
 {
 	int fd = -1;
 	char pathname[MAX_PATH];
-	strcpy(pathname, pah);
+	strcpy(pathname, path);
 	process_relative_path(pathname);
 	// 特判"/"
 	if(strcmp(pathname, "/") == 0) {
 		return 0; // todo: 待和姜峰讨论一下回到根目录的返回值，这本质是fd
+		//reply: 实际上0已经被用了，返回0可能与stdin 混淆
 	}
 	if(strcmp(pathname, "/ram") == 0) {
-		fd = vfs_table[VFS_INDEX_RAMFS].op->opendir(pathname+1);
+		fd = vfs_table[VFS_INDEX_RAMFS].op->opendir(".");
 	}
 	else {
 		int index = get_index(pathname);
-		if(index == -1) {
+		if(index == -1 || vfs_table[index].op->opendir == NULL) { // check opendir function ok
 			return -1;
 		}
 		fd = vfs_table[index].op->opendir(pathname);
@@ -583,29 +599,43 @@ int do_vopendir(char *pah)
 
 int do_vchdir(const char *dirname)
 {
-	int fd = -1;
+	int stat = -1;
 	char pathname[MAX_PATH];
+	char new_cwd[MAX_PATH];
 	strcpy(pathname, dirname);
 	process_relative_path(pathname);
 	// 特判"/"
 	if(strcmp(pathname, "/") == 0) {
 		strcpy(p_proc_current->task.cwd, pathname);
-		return 0; // todo: 待和姜峰讨论一下回到根目录的返回值，这本质是fd
+		return 0; // todo: 待和姜峰讨论一下回到根目录的返回值，这本质是fd 
+		//no no no, change cwd dont need fd
 	}
-	if(strcmp(pathname, "/ram") == 0) {
-		fd = vfs_table[VFS_INDEX_RAMFS].op->opendir(pathname+1);
+	// if(strcmp(pathname, "/ram") == 0) {
+	// 	fd = vfs_table[VFS_INDEX_RAMFS].op->opendir(pathname+1);
+	// }
+	strcpy(new_cwd, pathname);
+	for(int i = 0; i < NR_FS; i++ ) { // 如果找到的路径是第一级(fs_name),直接通过
+		if(strcmp(pathname + 1, vfs_table[i].fs_name) == 0) {
+			stat = 0;
+		}
 	}
-	else {
+	if(stat == -1) {
 		int index = get_index(pathname);
-		fd = vfs_table[index].op->opendir(pathname);
+		int fd = vfs_table[index].op->opendir(pathname);
+		if(fd == -1) {
+			return -1;
+		}
+		vfs_table[index].op->close(fd);
 	}
-	if(fd != -1) {
-		strcpy(pathname, dirname);
-		process_relative_path(pathname);
-		strcpy(p_proc_current->task.cwd, pathname); 
-		// 关于这段鬼畜代码的解释：因为get_index后把文件名改了，所以这里要把它改回来
-	}
-	return fd;
+	strcpy(p_proc_current->task.cwd, new_cwd);
+	return 0;
+	// if(fd != -1) {
+	// 	strcpy(pathname, dirname);
+	// 	process_relative_path(pathname);
+	// 	strcpy(p_proc_current->task.cwd, pathname); 
+	// 	// 关于这段鬼畜代码的解释：因为get_index后把文件名改了，所以这里要把它改回来
+	// }
+	// return fd;
 }
 
 int do_vmkdir(char *path) {
@@ -615,13 +645,13 @@ int do_vmkdir(char *path) {
 	strcpy(pathname, path);
 	pathname[pathlen] = 0;
 	process_relative_path(pathname);
-	if(strcmp(pathname, "/ram") == 0) {
-		/*
-		 * 由于目前的系统没有挂载功能，所以先在这里创建/ram文件夹
-		 * 该文件夹是ramfs的根目录，底下的文件都是ramfs的文件
-		 */
-		return vfs_table[VFS_INDEX_RAMFS].op->createdir(pathname+1);
-	}
+	// if(strcmp(pathname, "/ram") == 0) {
+	// 	/*
+	// 	 * 由于目前的系统没有挂载功能，所以先在这里创建/ram文件夹
+	// 	 * 该文件夹是ramfs的根目录，底下的文件都是ramfs的文件
+	// 	 */
+	// 	return vfs_table[VFS_INDEX_RAMFS].op->createdir(pathname+1);
+	// }
 	int index = get_index(pathname);
 	return vfs_table[index].op->createdir(pathname);
 }

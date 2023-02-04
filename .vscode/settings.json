@@ -3,6 +3,8 @@
 	"editor.tabSize": 4,
 	"editor.insertSpaces": false,
 	"files.associations": {
+		"**/*.html": "html",
+		"**/templates/**/*.html": "django-html",
 		"*.h": "c",
 		"*.c": "c",
 		"*.asm": "nasm",
@@ -27,7 +29,9 @@
 		"thread": "c",
 		"functional": "c",
 		"tuple": "c",
-		"utility": "c"
+		"utility": "c",
+		"algorithm": "c",
+		"chrono": "c"
 	},
 	"terminal.integrated.gpuAcceleration": "off"
 }
