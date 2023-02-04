@@ -41,4 +41,5 @@ int rf_create_dir(const char *dirname);
 int rf_open_dir(const char *dirname);
 int rf_delete(const char *filename);
 int rf_delete_dir(const char *dirname);
+int rf_unlink(const char *path);
 #endif

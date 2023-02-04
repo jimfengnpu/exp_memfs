@@ -172,9 +172,19 @@ int exec_u() {
 	exec(cmd_buf+5);
 	return 0;
 }
+
+int rm_u() {
+	if(unlink(cmd_buf+3) < 0) {
+		printf("rm failed\n");
+		return -1;
+	} else {
+		printf("rm %s finished\n", cmd_buf+3);
+		return 0;
+	}
+}
 // Make the function an element of the array
 // so that it can be called by the index
-#define CMD_NUM 8
+#define CMD_NUM 9
 char *cmd_name[CMD_NUM] = {
 	"pwd",
 	"cd",
@@ -184,6 +194,7 @@ char *cmd_name[CMD_NUM] = {
 	"cat",
 	"ls",
 	"exec",
+	"rm",
 };
 int (*cmd_table[CMD_NUM])() = {
 	pwd_u,
@@ -194,8 +205,8 @@ int (*cmd_table[CMD_NUM])() = {
 	cat_u,
 	ls_u,
 	exec_u,
+	rm_u,
 };
-
 
 void cmd_parser() {
 	int i;
@@ -314,12 +325,16 @@ void high_rw_test() {
 	printf("all_a test is passed\n");
 	printf("This test use %d ticks\n", end_ticks-start_ticks);
 	cmd_dostr("cd /");
-	fd = open("orange/test", O_CREAT | O_RDWR);
-	lseek(fd, 0, SEEK_SET);
-	start_ticks = get_ticks();
-	write(fd, data_buf, strlen(data_buf));
-	end_ticks = get_ticks();
-	printf("Wriet 2e6 bytes to hard disk: This test use %d ticks\n", end_ticks-start_ticks);
+	// fd = open("orange/test", O_CREAT | O_RDWR);
+	// lseek(fd, 0, SEEK_SET);
+	// start_ticks = get_ticks();
+	// write(fd, data_buf, strlen(data_buf));
+	// end_ticks = get_ticks();
+	// printf("Write 2e6 bytes to hard disk: This test use %d ticks\n", end_ticks-start_ticks);
+	cmd_dostr("cd ram");
+	cmd_dostr("mkdir empty");
+	cmd_dostr("rm empty");
+	fake_shell();
 }
 
 // int fattest() {

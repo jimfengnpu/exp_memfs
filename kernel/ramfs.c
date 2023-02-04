@@ -558,7 +558,7 @@ int rf_delete_dir(const char *dirname)
 	p_rf_rec pREC = find_path(dirname, NULL, 0, RF_D);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		if(check_dir_size(pREC->start_cluster) <= 2*sizeof(rf_record)) {
+		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_record)) {
 			return -ENOTEMPTY;
 		}
 		u32 clu = pREC->start_cluster, nxt_clu=0;
@@ -569,5 +569,17 @@ int rf_delete_dir(const char *dirname)
 		}
 		return OK;
 	}
+	return -ENOENT;
+}
+
+int rf_unlink(const char *pathname)
+{
+	// p_rf_rec pREC_f = find_path(pathname, NULL, 0, RF_F);
+	p_rf_rec prec_f = find_path(pathname, NULL, 0, RF_F);
+	if(prec_f) 
+		return rf_delete(pathname);
+	p_rf_rec prec_d = find_path(pathname, NULL, 0, RF_D);
+	if(prec_d) 
+		return rf_delete_dir(pathname);
 	return -ENOENT;
 }

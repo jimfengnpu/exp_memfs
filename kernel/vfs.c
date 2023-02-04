@@ -90,12 +90,13 @@ void init_fileop_table()
 
     // table[3] for ramfs
     f_op_table[3].create = rf_create;
-    f_op_table[3].delete = rf_delete;
     f_op_table[3].open = rf_open;
     f_op_table[3].close = rf_close;
-    f_op_table[3].write = rf_write;
     f_op_table[3].read = rf_read;
+    f_op_table[3].write = rf_write;
     f_op_table[3].lseek = rf_lseek;
+    f_op_table[3].delete = rf_delete;
+	f_op_table[3].unlink = rf_unlink;
     f_op_table[3].opendir = rf_open_dir;
     f_op_table[3].createdir = rf_create_dir;
     f_op_table[3].deletedir = rf_delete_dir;
@@ -417,6 +418,8 @@ int do_vunlink(const char *path) {
     
     strcpy(pathname,(char *)path);
     pathname[pathlen] = 0;
+
+	process_relative_path(pathname); // get absolute path
 
     int index;
     index = get_index(pathname);
