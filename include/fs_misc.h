@@ -126,7 +126,7 @@ struct dir_ent {
 union ptr_node{
 	struct inode*	fd_inode;	/**< Ptr to the i-node */
 	PFile 	fd_file;	//指向fat32的file结构体
-	pRF_REC fd_ram;
+	p_rf_rec fd_ram;
 };
 
 struct file_desc {

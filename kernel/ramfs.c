@@ -11,9 +11,10 @@
 #include "vfs.h"
 #include "fat32.h"
 #include "fs.h"
+#include "errno.h"
 
-static pRF_FAT RF_FAT_ROOT;
-static pRF_CLU RF_DATA_ROOT;
+static p_rf_fat RF_FAT_ROOT;
+static p_rf_clu RF_DATA_ROOT;
 extern struct file_desc f_desc_table[NR_FILE_DESC];
 
 static int rf_find_first_free(){
@@ -22,11 +23,11 @@ static int rf_find_first_free(){
 		if(*(RF_FAT_ROOT+i)==0)
 			return i;
 	}
-	return -INSUFFICIENTSPACE;
+	return -ENOMEM;
 }
 static void rf_alloc_clu(int clu){
 	*(RF_FAT_ROOT + clu) = MAX_UNSIGNED_INT;
-	memset(RF_DATA_ROOT+clu, 0, sizeof(RF_CLU));
+	memset(RF_DATA_ROOT+clu, 0, sizeof(rf_clu));
 }
 
 static u32 check_dir_size(u32 pClu)
@@ -36,29 +37,30 @@ static u32 check_dir_size(u32 pClu)
 		dir_size += RAM_FS_CLUSTER_SIZE;
 		pClu = RF_FAT_ROOT[pClu];
 	}
-	pRF_REC rec = (pRF_REC)(RF_DATA_ROOT+pClu);
+	p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT+pClu);
 	int i;
 	for (i = RF_NR_REC - 1; i >= 0; i--) {
 		if(rec[i].record_type != RF_NONE){
 			break;
 		}
 	}
-	dir_size += (i + 1)*sizeof(RAM_FS_RECORD);
+	dir_size += (i + 1)*sizeof(rf_record);
 	return dir_size;
 }
 
-static void init_dir_record(int dir_clu, pRF_REC parent_rec)
+//parent_rec: 待初始化的文件夹记录项(在上级目录文件数据中)
+static void init_dir_record(int dir_clu, p_rf_rec parent_rec)
 {
 	// dir content
 	// rf_write_record(dir_rec, ".", dir_rec->start_cluster, RF_D, 0);//dir to itself
 	// rf_write_record(dir_rec, "..", parent_dir, RF_D, 0);//dir to parent
-	pRF_REC rec = (pRF_REC)(RF_DATA_ROOT + dir_clu);
+	p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT + dir_clu);
 	strcpy(rec->name, ".");
 	rec->record_type = RF_D;
-	rec->size = sizeof(RAM_FS_RECORD);
+	rec->size = sizeof(rf_record);
 	rec->start_cluster = dir_clu;
 	if(parent_rec != NULL) {
-		rec->size += sizeof(RAM_FS_RECORD);
+		rec->size += sizeof(rf_record);
 		rec++;
 		strcpy(rec->name, "..");
 		rec->record_type = RF_D;
@@ -68,13 +70,14 @@ static void init_dir_record(int dir_clu, pRF_REC parent_rec)
 }
 
 //对于文件夹,传入的size无用
-static pRF_REC rf_write_record(pRF_REC dir_rec, const char *name, u32 entClu, u32 type, u32 size)
+//dir_rec: 待写入的文件所在文件夹记录项(在上级目录文件数据中)
+static p_rf_rec rf_write_record(p_rf_rec dir_rec, const char *name, u32 entClu, u32 type, u32 size)
 {
 	u32 pClu = 0;
 	if(dir_rec != NULL) {
 		pClu = dir_rec->start_cluster;
 	}
-	pRF_REC rec = (pRF_REC)(RF_DATA_ROOT+pClu);
+	p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT+pClu);
 	int i, inew;
 	for (i = 0; i < RF_NR_REC;){
 		if(rec[i].record_type == RF_NONE){
@@ -96,11 +99,10 @@ static pRF_REC rf_write_record(pRF_REC dir_rec, const char *name, u32 entClu, u3
 	strcpy(rec[i].name, name);
 	rec[i].record_type = type;
 	u32 new_size = check_dir_size(pClu);
-	pRF_REC current = find_path(".", dir_rec, 0, RF_D);
-	current->size = new_size;
+	rec->size = new_size;
 	if(type == RF_F) rec[i].size = size;
 	else if(type == RF_D) {
-		init_dir_record(entClu, current);
+		init_dir_record(entClu, rec);
 		rec[i].size = check_dir_size(entClu);
 	}
 	rec[i].start_cluster = entClu;
@@ -205,7 +207,9 @@ static pRF_REC rf_write_record(pRF_REC dir_rec, const char *name, u32 entClu, u3
 2.若是创建文件时，未到文件末尾时，还会创建。若上层文件夹不存在时，应返回NULL
 */
 // 先前没有ram文件夹时，可以直接用ram，现在得先创建ram文件夹再用了，mkdir默认ramfs。
-pRF_REC find_path(const char *path, pRF_REC dir_rec, int flag, int find_type) {
+// vfs调整后,ram默认存在(将fs_name作为一层文件夹)
+//参数变更: 从dir_rec记录表示的文件夹开始搜索,NULL则从RAMFS的根开始
+p_rf_rec find_path(const char *path, p_rf_rec dir_rec, int flag, int find_type) {
 	u32 dir_clu = 0;
 	if(dir_rec != NULL) {
 		dir_clu = dir_rec->start_cluster;
@@ -218,17 +222,21 @@ pRF_REC find_path(const char *path, pRF_REC dir_rec, int flag, int find_type) {
 			ent_name[j] = path[pathpos];
 		}
 		ent_name[j] = '\0';
-		pRF_REC rec = (pRF_REC)(RF_DATA_ROOT + dir_clu);
+		p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT + dir_clu);
 		int i;
 		for(i = 0; i < RF_NR_REC; i++) {
 			if(rec[i].record_type == RF_NONE) continue;
 			if(pathpos < len && rec[i].record_type == RF_D && strcmp(rec[i].name, ent_name) == 0) {
+				rec[i].size = check_dir_size(rec[i].start_cluster);
 				dir_rec = rec + i;
 				dir_clu = rec[i].start_cluster;
 				break;
 			}
 			if(pathpos == len && rec[i].record_type != RF_NONE && strcmp(rec[i].name, ent_name) == 0) {
-				if(rec[i].record_type == find_type) return rec + i;
+				if(rec[i].record_type == find_type) {
+					if(rec[i].record_type == RF_D)rec[i].size = check_dir_size(rec[i].start_cluster);
+					return rec + i;
+				}
 				else return NULL;
 			}
 		}
@@ -250,7 +258,8 @@ pRF_REC find_path(const char *path, pRF_REC dir_rec, int flag, int find_type) {
 				// if(find_type == RF_D) {
 				// 	rf_write_record(inew, ".", inew, RF_D, 0);
 				// 	rf_write_record(inew, "..", dir_clu, RF_D, 0);
-				// } move to write_record
+				// } 
+				//dir init move to write_record
 				return rf_write_record(dir_rec, ent_name, inew, find_type, 0);
 			} else {
 				return NULL;
@@ -264,8 +273,8 @@ pRF_REC find_path(const char *path, pRF_REC dir_rec, int flag, int find_type) {
 void init_ram_fs()
 {
 	//in syscall we can only use 3G~3G+128M so we init the two at the beginning
-	RF_FAT_ROOT = (pRF_FAT)K_PHY2LIN(RAM_FS_BASE);
-	RF_DATA_ROOT = (pRF_CLU)K_PHY2LIN(RAM_FS_DATA_BASE);
+	RF_FAT_ROOT = (p_rf_fat)K_PHY2LIN(RAM_FS_BASE);
+	RF_DATA_ROOT = (p_rf_clu)K_PHY2LIN(RAM_FS_DATA_BASE);
 	rf_alloc_clu(0);
 	init_dir_record(0, NULL);
 }
@@ -289,7 +298,9 @@ int rf_open(const char *path, int mode)
 			break;
 		}
 	}
-
+	if(i == NR_FILES) {
+		return -EMFILE;
+	}
 	assert(0 <= fd && fd < NR_FILES);
 
 	/* find a free slot in f_desc_table[] */
@@ -297,10 +308,12 @@ int rf_open(const char *path, int mode)
 		//modified by mingxuan 2019-5-17
 		if (f_desc_table[i].flag == 0)
 			break;
-	
+	if(i == NR_FILE_DESC) {
+		return -ENFILE;
+	}
 	assert(i < NR_FILE_DESC);
 
-	pRF_REC fd_ram = find_path(path, NULL, mode, RF_F);//from root
+	p_rf_rec fd_ram = find_path(path, NULL, mode, RF_F);//from root
 	if(fd_ram) {
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
@@ -315,7 +328,7 @@ int rf_open(const char *path, int mode)
 	}
 	else
 	{
-		return -1;
+		return -ENOENT;
 	}
 	return fd;
 }
@@ -373,7 +386,7 @@ int rf_read(int fd, void *buf, int length)
 {
 	if(!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
 		return -1; // 权限检查
-	pRF_REC pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
+	p_rf_rec pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
 	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
 	// assert(cur_pos <= pf_rec->size); // 偏移指针肯定小于文件大小 恰好到文件尾的时候，不该报assert吧
@@ -385,7 +398,7 @@ int rf_read(int fd, void *buf, int length)
 		st_clu = RF_FAT_ROOT[st_clu];
 	}
 	assert(st_clu != MAX_UNSIGNED_INT); // 不可能是-1
-	pRF_CLU clu_data = RF_DATA_ROOT + st_clu;
+	p_rf_clu clu_data = RF_DATA_ROOT + st_clu;
 	char *rf_data = (char *)clu_data + cur_pos % RAM_FS_CLUSTER_SIZE;
 	int bytes_read = 0;
 	while(bytes_read < length && st_clu != MAX_UNSIGNED_INT) {
@@ -409,7 +422,7 @@ int rf_write(int fd, const void *buf, int length)
 {
 	if (!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
 		return -1;
-	pRF_REC frec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
+	p_rf_rec frec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int pos = p_proc_current->task.filp[fd]->fd_pos;
 	int fat_offset = pos / RAM_FS_CLUSTER_SIZE;
 	int cluster = frec->start_cluster;
@@ -425,7 +438,7 @@ int rf_write(int fd, const void *buf, int length)
 		}
 		cluster = RF_FAT_ROOT[cluster];
 	}
-	pRF_CLU clu_data = RF_DATA_ROOT + cluster;
+	p_rf_clu clu_data = RF_DATA_ROOT + cluster;
 	char *rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
 	int bytes_write = 0;
 	//end of expected buf later than current cluster
@@ -510,7 +523,7 @@ int rf_open_dir(const char *dirname)
 			break;
 	if(i == NR_FILE_DESC)
 		return -1;
-	pRF_REC fd_ram = find_path(dirname, NULL, O_RDWR, RF_D);
+	p_rf_rec fd_ram = find_path(dirname, NULL, O_RDWR, RF_D);
 	if(fd_ram == NULL)
 		return -1;
 	// update f_desc_table
@@ -525,7 +538,7 @@ int rf_open_dir(const char *dirname)
 
 int rf_delete(const char *filename)
 {
-	pRF_REC pREC = find_path(filename, NULL, 0, RF_F);
+	p_rf_rec pREC = find_path(filename, NULL, 0, RF_F);
 	if(pREC){
 		pREC->record_type = RF_NONE;
 		u32 clu = pREC->start_cluster, nxt_clu=0;
@@ -541,10 +554,13 @@ int rf_delete(const char *filename)
 
 int rf_delete_dir(const char *dirname)
 {
-	panic("todo: check empty in rf_delete_dir");
-	pRF_REC pREC = find_path(dirname, NULL, 0, RF_D);
+	// panic("todo: check empty in rf_delete_dir");
+	p_rf_rec pREC = find_path(dirname, NULL, 0, RF_D);
 	if(pREC){
 		pREC->record_type = RF_NONE;
+		if(check_dir_size(pREC->start_cluster) <= 2*sizeof(rf_record)) {
+			return -ENOTEMPTY;
+		}
 		u32 clu = pREC->start_cluster, nxt_clu=0;
 		while(nxt_clu != MAX_UNSIGNED_INT){
 			nxt_clu = RF_FAT_ROOT[clu];
@@ -553,5 +569,5 @@ int rf_delete_dir(const char *dirname)
 		}
 		return OK;
 	}
-	return -1;
+	return -ENOENT;
 }
