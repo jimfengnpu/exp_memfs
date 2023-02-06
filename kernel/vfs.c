@@ -75,6 +75,7 @@ void init_fileop_table()
     f_op_table[1].write = real_write;
     f_op_table[1].lseek = real_lseek;
     f_op_table[1].unlink = real_unlink;
+	f_op_table[1].delete = real_unlink; // 单纯为了实现delete语义
     f_op_table[1].read = real_read;
 
     // table[2] for fat32
@@ -359,7 +360,7 @@ int do_vopen(const char *path, int flags) {
     int index;
     int fd = -1;
     index = get_index(pathname);
-    if(index == -1){
+    if(index == -1){ // to check if the device/fs is exist
         kprintf("pathname error! path: %s\n", path);
         return -1;
     }
@@ -613,20 +614,23 @@ int do_vchdir(const char *dirname)
 	// 特判"/"
 	if(strcmp(pathname, "/") == 0) {
 		strcpy(p_proc_current->task.cwd, pathname);
-		return 0; // todo: 待和姜峰讨论一下回到根目录的返回值，这本质是fd 
+		return 0; 
 		//no no no, change cwd dont need fd
 	}
 	// if(strcmp(pathname, "/ram") == 0) {
 	// 	fd = vfs_table[VFS_INDEX_RAMFS].op->opendir(pathname+1);
 	// }
 	strcpy(new_cwd, pathname);
-	for(int i = 0; i < NR_FS; i++ ) { // 如果找到的路径是第一级(fs_name),直接通过
+	int i;
+	for(i = 0; i < NR_FS; i++ ) { // 如果找到的路径是第一级(fs_name),直接通过
 		if(strcmp(pathname + 1, vfs_table[i].fs_name) == 0) {
-			stat = 0;
+			stat = 0;break;
 		}
 	}
 	if(stat == -1) {
 		int index = get_index(pathname);
+		if(index == -1)
+			return -1; // 修复bug：有可能用户一开始就输入了错误的路径
 		int fd = vfs_table[index].op->opendir(pathname);
 		if(fd == -1) {
 			return -1;
@@ -635,13 +639,6 @@ int do_vchdir(const char *dirname)
 	}
 	strcpy(p_proc_current->task.cwd, new_cwd);
 	return 0;
-	// if(fd != -1) {
-	// 	strcpy(pathname, dirname);
-	// 	process_relative_path(pathname);
-	// 	strcpy(p_proc_current->task.cwd, pathname); 
-	// 	// 关于这段鬼畜代码的解释：因为get_index后把文件名改了，所以这里要把它改回来
-	// }
-	// return fd;
 }
 
 int do_vmkdir(char *path) {
@@ -651,13 +648,7 @@ int do_vmkdir(char *path) {
 	strcpy(pathname, path);
 	pathname[pathlen] = 0;
 	process_relative_path(pathname);
-	// if(strcmp(pathname, "/ram") == 0) {
-	// 	/*
-	// 	 * 由于目前的系统没有挂载功能，所以先在这里创建/ram文件夹
-	// 	 * 该文件夹是ramfs的根目录，底下的文件都是ramfs的文件
-	// 	 */
-	// 	return vfs_table[VFS_INDEX_RAMFS].op->createdir(pathname+1);
-	// }
+	/* 由于目前的系统没有挂载mount功能，/ram文件夹是ramfs的根目录 */
 	int index = get_index(pathname);
 	return vfs_table[index].op->createdir(pathname);
 }

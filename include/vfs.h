@@ -3,7 +3,7 @@
 ***********************************************************/
 #include "fs_misc.h"
 //#define NR_DEV 10
-#define NR_FS 10		//modified by mingxuan 2020-10-18
+#define NR_FS 6		//modified by mingxuan 2020-10-18
 #define DEV_NAME_LEN 15
 //#define NR_fs 3
 #define NR_FS_OP 4		//modified by mingxuan 2020-10-18 jf 20221225
@@ -80,18 +80,17 @@ int deletedir(char *dirname);
 
 //文件系统的操作函数
 struct file_op{
-	int (*create)   (const char*);
-	int (*open)    (const char* ,int);
-	int (*close)   (int);
-	int (*read)    (int,void * ,int);
-	int (*write)   (int ,const void* ,int);
-	int (*lseek)   (int ,int ,int);
-	int (*unlink)  (const char*);
-	int (*delete) (const char*);
-	// int (*opendir) (const char *, struct dir_ent *, int);
-	int (*opendir) (const char *);
-	int (*createdir) (const char *);
-	int (*deletedir) (const char *);
+	int (*create)   	(const char*);
+	int (*open)    		(const char* ,int);
+	int (*close)   		(int);
+	int (*read)    		(int,void * ,int);
+	int (*write)   		(int ,const void* ,int);
+	int (*lseek)   		(int ,int ,int);
+	int (*unlink)  		(const char*);
+	int (*delete) 		(const char*);
+	int (*opendir) 		(const char *);
+	int (*createdir) 	(const char *);
+	int (*deletedir) 	(const char *);
 };
 
 //added by mingxuan 2020-10-29

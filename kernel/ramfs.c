@@ -208,7 +208,7 @@ static p_rf_rec rf_write_record(p_rf_rec dir_rec, const char *name, u32 entClu, 
 */
 // 先前没有ram文件夹时，可以直接用ram，现在得先创建ram文件夹再用了，mkdir默认ramfs。
 // vfs调整后,ram默认存在(将fs_name作为一层文件夹)
-//参数变更: 从dir_rec记录表示的文件夹开始搜索,NULL则从RAMFS的根开始
+// 参数变更: 从dir_rec记录表示的文件夹开始搜索,NULL则从RAMFS的根开始
 p_rf_rec find_path(const char *path, p_rf_rec dir_rec, int flag, int find_type) {
 	u32 dir_clu = 0;
 	if(dir_rec != NULL) {
