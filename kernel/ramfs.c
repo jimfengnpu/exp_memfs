@@ -37,30 +37,30 @@ static u32 check_dir_size(u32 pClu)
 		dir_size += RAM_FS_CLUSTER_SIZE;
 		pClu = RF_FAT_ROOT[pClu];
 	}
-	p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT+pClu);
+	p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT+pClu);
 	int i;
 	for (i = RF_NR_REC - 1; i >= 0; i--) {
 		if(rec[i].record_type != RF_NONE){
 			break;
 		}
 	}
-	dir_size += (i + 1)*sizeof(rf_record);
+	dir_size += (i + 1)*sizeof(rf_inode);
 	return dir_size;
 }
 
 //parent_rec: 待初始化的文件夹记录项(在上级目录文件数据中)
-static void init_dir_record(int dir_clu, p_rf_rec parent_rec)
+static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 {
 	// dir content
 	// rf_write_record(dir_rec, ".", dir_rec->start_cluster, RF_D, 0);//dir to itself
 	// rf_write_record(dir_rec, "..", parent_dir, RF_D, 0);//dir to parent
-	p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT + dir_clu);
+	p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT + dir_clu);
 	strcpy(rec->name, ".");
 	rec->record_type = RF_D;
-	rec->size = sizeof(rf_record);
+	rec->size = sizeof(rf_inode);
 	rec->start_cluster = dir_clu;
 	if(parent_rec != NULL) {
-		rec->size += sizeof(rf_record);
+		rec->size += sizeof(rf_inode);
 		rec++;
 		strcpy(rec->name, "..");
 		rec->record_type = RF_D;
@@ -71,13 +71,13 @@ static void init_dir_record(int dir_clu, p_rf_rec parent_rec)
 
 //对于文件夹,传入的size无用
 //dir_rec: 待写入的文件所在文件夹记录项(在上级目录文件数据中)
-static p_rf_rec rf_write_record(p_rf_rec dir_rec, const char *name, u32 entClu, u32 type, u32 size)
+static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entClu, u32 type, u32 size)
 {
 	u32 pClu = 0;
 	if(dir_rec != NULL) {
 		pClu = dir_rec->start_cluster;
 	}
-	p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT+pClu);
+	p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT+pClu);
 	int i, inew;
 	for (i = 0; i < RF_NR_REC;){
 		if(rec[i].record_type == RF_NONE){
@@ -209,7 +209,7 @@ static p_rf_rec rf_write_record(p_rf_rec dir_rec, const char *name, u32 entClu, 
 // 先前没有ram文件夹时，可以直接用ram，现在得先创建ram文件夹再用了，mkdir默认ramfs。
 // vfs调整后,ram默认存在(将fs_name作为一层文件夹)
 // 参数变更: 从dir_rec记录表示的文件夹开始搜索,NULL则从RAMFS的根开始
-p_rf_rec find_path(const char *path, p_rf_rec dir_rec, int flag, int find_type) {
+p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_type) {
 	u32 dir_clu = 0;
 	if(dir_rec != NULL) {
 		dir_clu = dir_rec->start_cluster;
@@ -222,7 +222,7 @@ p_rf_rec find_path(const char *path, p_rf_rec dir_rec, int flag, int find_type) 
 			ent_name[j] = path[pathpos];
 		}
 		ent_name[j] = '\0';
-		p_rf_rec rec = (p_rf_rec)(RF_DATA_ROOT + dir_clu);
+		p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT + dir_clu);
 		int i;
 		for(i = 0; i < RF_NR_REC; i++) {
 			if(rec[i].record_type == RF_NONE) continue;
@@ -313,7 +313,7 @@ int rf_open(const char *pathname, int flags)
 	}
 	assert(i < NR_FILE_DESC);
 
-	p_rf_rec fd_ram = find_path(pathname, NULL, flags, RF_F);//from root
+	p_rf_inode fd_ram = find_path(pathname, NULL, flags, RF_F);//from root
 	if(fd_ram) {
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
@@ -335,10 +335,13 @@ int rf_open(const char *pathname, int flags)
 
 int rf_close(int fd)
 {
+	if(p_proc_current->task.filp[fd] == 0) {
+		return -1;
+	}
 	p_proc_current->task.filp[fd]->fd_node.fd_ram = 0;
 	p_proc_current->task.filp[fd]->flag = 0;
 	p_proc_current->task.filp[fd] = 0;
-	return OK;
+	return 0;
 }
 
 
@@ -386,7 +389,7 @@ int rf_read(int fd, void *buf, int length)
 {
 	if(!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
 		return -1; // 权限检查
-	p_rf_rec pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
+	p_rf_inode pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
 	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
 	// assert(cur_pos <= pf_rec->size); // 偏移指针肯定小于文件大小 恰好到文件尾的时候，不该报assert吧
@@ -422,7 +425,7 @@ int rf_write(int fd, const void *buf, int length)
 {
 	if (!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
 		return -1;
-	p_rf_rec frec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
+	p_rf_inode frec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int pos = p_proc_current->task.filp[fd]->fd_pos;
 	int fat_offset = pos / RAM_FS_CLUSTER_SIZE;
 	int cluster = frec->start_cluster;
@@ -524,7 +527,7 @@ int rf_open_dir(const char *dirname)
 			break;
 	if(i == NR_FILE_DESC)
 		return -1;
-	p_rf_rec fd_ram = find_path(dirname, NULL, O_RDWR, RF_D);
+	p_rf_inode fd_ram = find_path(dirname, NULL, O_RDWR, RF_D);
 	if(fd_ram == NULL)
 		return -1;
 	// update f_desc_table
@@ -539,7 +542,7 @@ int rf_open_dir(const char *dirname)
 
 int rf_delete(const char *filename)
 {
-	p_rf_rec pREC = find_path(filename, NULL, 0, RF_F);
+	p_rf_inode pREC = find_path(filename, NULL, 0, RF_F);
 	if(pREC){
 		pREC->record_type = RF_NONE;
 		u32 clu = pREC->start_cluster, nxt_clu=0;
@@ -556,10 +559,10 @@ int rf_delete(const char *filename)
 int rf_delete_dir(const char *dirname)
 {
 	// panic("todo: check empty in rf_delete_dir");
-	p_rf_rec pREC = find_path(dirname, NULL, 0, RF_D);
+	p_rf_inode pREC = find_path(dirname, NULL, 0, RF_D);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_record)) {
+		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_inode)) {
 			return -ENOTEMPTY;
 		}
 		u32 clu = pREC->start_cluster, nxt_clu=0;
@@ -575,11 +578,11 @@ int rf_delete_dir(const char *dirname)
 
 int rf_unlink(const char *pathname)
 {
-	// p_rf_rec pREC_f = find_path(pathname, NULL, 0, RF_F);
-	p_rf_rec prec_f = find_path(pathname, NULL, 0, RF_F);
+	// p_rf_inode pREC_f = find_path(pathname, NULL, 0, RF_F);
+	p_rf_inode prec_f = find_path(pathname, NULL, 0, RF_F);
 	if(prec_f) 
 		return rf_delete(pathname);
-	p_rf_rec prec_d = find_path(pathname, NULL, 0, RF_D);
+	p_rf_inode prec_d = find_path(pathname, NULL, 0, RF_D);
 	if(prec_d) 
 		return rf_delete_dir(pathname);
 	return -ENOENT;

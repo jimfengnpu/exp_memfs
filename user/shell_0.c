@@ -132,8 +132,8 @@ int ls_u() {
 		return -1;
 	}
 	lseek(fd, 0, SEEK_SET);
-	while(read(fd, data_buf, sizeof(rf_record)) == sizeof(rf_record)) {
-		rf_record *p = (rf_record *)data_buf;
+	while(read(fd, data_buf, sizeof(rf_inode)) == sizeof(rf_inode)) {
+		rf_inode *p = (rf_inode *)data_buf;
 		if(p->record_type == RF_F) {
 			printf("file: %s size: %d\n", p->name, p->size);
 		} else if(p->record_type == RF_D) {
