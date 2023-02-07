@@ -150,7 +150,17 @@ int exec_u() {
 }
 
 int rm_u() {
-	if(unlink(cmd_buf+3) < 0) {
+	if(delete(cmd_buf+3) < 0) {
+		printf("rm failed\n");
+		return -1;
+	} else {
+		printf("rm %s finished\n", cmd_buf+3);
+		return 0;
+	}
+}
+
+int rmdir_u() {
+	if(deletedir(cmd_buf+6) < 0) {
 		printf("rm failed\n");
 		return -1;
 	} else {
@@ -161,7 +171,7 @@ int rm_u() {
 
 // Make the function an element of the array 
 // so that it can be called by the index
-#define CMD_NUM 9
+#define CMD_NUM 10
 char *cmd_name[CMD_NUM] = {
 	"pwd",
 	"cd",
@@ -172,6 +182,7 @@ char *cmd_name[CMD_NUM] = {
 	"ls",
 	"exec",
 	"rm",
+	"rmdir",
 };
 int (*cmd_table[CMD_NUM])() = {
 	pwd_u,
@@ -183,13 +194,16 @@ int (*cmd_table[CMD_NUM])() = {
 	ls_u,
 	exec_u,
 	rm_u,
+	rmdir_u,
 };
 
 int cmd_parser() {
 	int i;
 	for (i = 0; i < CMD_NUM; i++)
 	{
-		if(strlen(cmd_name[i]) <= strlen(cmd_buf) && strncmp(cmd_name[i], cmd_buf, strlen(cmd_name[i])) == 0)
+		if(strlen(cmd_name[i]) <= strlen(cmd_buf) && strncmp(cmd_name[i], cmd_buf, strlen(cmd_name[i])) == 0
+		&& (cmd_buf[strlen(cmd_name[i])] == ' ' || cmd_buf[strlen(cmd_name[i])] == '\0'))
+		// 关于这parser，第2行是为了避免因为前缀匹配导致的不一致，如rm和rmdir
 		{
 			return cmd_table[i]();
 		}
@@ -237,8 +251,8 @@ int easytest() {
 	check_expr(cmd_dostr("cd /ram") >= 0);
 	// 删除文件夹
 	check_expr(cmd_dostr("rm /ram/a") >= 0);
-	check_expr(cmd_dostr("rm /ram/b") >= 0);
-	check_expr(cmd_dostr("rm /ram/c") >= 0);
+	check_expr(cmd_dostr("rmdir /ram/b") >= 0);
+	check_expr(cmd_dostr("rmdir /ram/c") >= 0);
 	printf("easy_test pass!!!\n");
 	return 0;
 }
@@ -551,7 +565,7 @@ void high_rw_test() {
 	// printf("Write 2e6 bytes to hard disk: This test use %d ticks\n", end_ticks-start_ticks);
 	cmd_dostr("cd ram");
 	cmd_dostr("mkdir empty");
-	cmd_dostr("rm empty");
+	cmd_dostr("rmdir empty");
 	fake_shell();
 }
 

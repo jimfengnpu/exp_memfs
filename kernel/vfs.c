@@ -560,6 +560,7 @@ int do_vdeletedir(char *path) {
     
     strcpy(pathname,path);
     pathname[pathlen] = 0;
+	process_relative_path(pathname);
 
     int index;
     index =  get_index(pathname); //(int)(pathname[1]-'0');
@@ -571,8 +572,8 @@ int do_vdeletedir(char *path) {
 //     {
 //         pathname[j] = pathname[j+3];
 //     }
-    state = f_op_table[index].deletedir(pathname);
-    if (state == 1) {
+    state = vfs_table[index].op->deletedir(pathname);
+    if (state >= 0) {
         kprintf("          delete dir success!");
     } else {
 		DisErrorInfo(state);
