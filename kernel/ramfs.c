@@ -388,7 +388,7 @@ int rf_close(int fd)
 int rf_read(int fd, void *buf, int length)
 {
 	if(!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
-		return -1; // 权限检查
+		return -EACCES; // 权限检查
 	p_rf_inode pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
 	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
@@ -400,7 +400,7 @@ int rf_read(int fd, void *buf, int length)
 		cnt_clu++;
 		st_clu = RF_FAT_ROOT[st_clu];
 	}
-	assert(st_clu != MAX_UNSIGNED_INT); // 不可能是-1
+	// assert(st_clu != MAX_UNSIGNED_INT); // 不可能是-1
 	p_rf_clu clu_data = RF_DATA_ROOT + st_clu;
 	char *rf_data = (char *)clu_data + cur_pos % RAM_FS_CLUSTER_SIZE;
 	int bytes_read = 0;
@@ -424,7 +424,7 @@ int rf_read(int fd, void *buf, int length)
 int rf_write(int fd, const void *buf, int length)
 {
 	if (!(p_proc_current->task.filp[fd]->fd_mode & O_RDWR))
-		return -1;
+		return -EACCES;
 	p_rf_inode frec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int pos = p_proc_current->task.filp[fd]->fd_pos;
 	int fat_offset = pos / RAM_FS_CLUSTER_SIZE;
@@ -502,7 +502,7 @@ int rf_create(const char *pathname)
 
 int rf_create_dir(const char *dirname)
 {
-	return find_path(dirname, NULL, O_CREAT, RF_D) != NULL ? OK : -1;
+	return find_path(dirname, NULL, O_CREAT, RF_D) != NULL ? 0 : -1;
 }
 
 int rf_open_dir(const char *dirname)
@@ -521,15 +521,15 @@ int rf_open_dir(const char *dirname)
 		}
 	}
 	if(i == NR_FILES)
-		return -1;
+		return -EMFILE;
 	for(i = 0;i < NR_FILE_DESC;i++)
 		if(f_desc_table[i].flag == 0)
 			break;
 	if(i == NR_FILE_DESC)
-		return -1;
+		return -ENFILE;
 	p_rf_inode fd_ram = find_path(dirname, NULL, O_RDWR, RF_D);
 	if(fd_ram == NULL)
-		return -1;
+		return -ENOENT;
 	// update f_desc_table
 	p_proc_current->task.filp[fd] = &f_desc_table[i];
 	f_desc_table[i].flag = 1;
@@ -551,9 +551,9 @@ int rf_delete(const char *filename)
 			RF_FAT_ROOT[clu] = 0;
 			clu = nxt_clu;
 		}
-		return OK;
+		return 0;
 	}
-	return -1;
+	return -ENOENT;
 }
 
 int rf_delete_dir(const char *dirname)
@@ -561,17 +561,17 @@ int rf_delete_dir(const char *dirname)
 	// panic("todo: check empty in rf_delete_dir");
 	p_rf_inode pREC = find_path(dirname, NULL, 0, RF_D);
 	if(pREC){
-		pREC->record_type = RF_NONE;
 		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_inode)) {
 			return -ENOTEMPTY;
 		}
+		pREC->record_type = RF_NONE;
 		u32 clu = pREC->start_cluster, nxt_clu=0;
 		while(nxt_clu != MAX_UNSIGNED_INT){
 			nxt_clu = RF_FAT_ROOT[clu];
 			RF_FAT_ROOT[clu] = 0;
 			clu = nxt_clu;
 		}
-		return OK;
+		return 0;
 	}
 	return -ENOENT;
 }
