@@ -314,7 +314,7 @@ int alphabet_copy_test() {
 			cur_pos++;
 		}
 		return 1;
-	}
+	};
 // 将文件指针移动到文件开头
 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); 
 	cur_pos = 0;

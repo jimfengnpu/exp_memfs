@@ -280,15 +280,15 @@ void init_ram_fs()
 }
 
 //open and return fd
-int rf_open(const char *path, int mode)
+int rf_open(const char *pathname, int flags)
 {
 	/*caller_nr is the process number of the */
 	int fd = -1;		/* return value */
-	int name_len = strlen(path);
-	char pathname[MAX_PATH];
+	int name_len = strlen(pathname);
+	char path[MAX_PATH];
 
-	memcpy((void*)va2la(proc2pid(p_proc_current), pathname),(void*)va2la(proc2pid(p_proc_current), (void*)path), name_len);
-	pathname[name_len] = 0;
+	memcpy((void*)va2la(proc2pid(p_proc_current), path),(void*)va2la(proc2pid(p_proc_current), (void*)pathname), name_len);
+	path[name_len] = 0;
 
 	/* find a free slot in PROCESS::filp[] */
 	int i;
@@ -313,7 +313,7 @@ int rf_open(const char *path, int mode)
 	}
 	assert(i < NR_FILE_DESC);
 
-	p_rf_rec fd_ram = find_path(path, NULL, mode, RF_F);//from root
+	p_rf_rec fd_ram = find_path(pathname, NULL, flags, RF_F);//from root
 	if(fd_ram) {
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
@@ -323,7 +323,7 @@ int rf_open(const char *path, int mode)
 		/* connects file_descriptor with inode */
 		f_desc_table[i].fd_node.fd_ram = fd_ram;	//modified by mingxuan 2019-5-17
 		f_desc_table[i].dev_index = 5;
-		f_desc_table[i].fd_mode = mode;
+		f_desc_table[i].fd_mode = flags;
 		f_desc_table[i].fd_pos = 0;
 	}
 	else
@@ -493,7 +493,8 @@ int rf_lseek(int fd, int offset, int whence)
 
 int rf_create(const char *pathname)
 {
-	return find_path(pathname, NULL, O_CREAT, RF_F) != NULL ? OK : -1;
+	return rf_open(pathname, O_CREAT); // modified by xu for return value
+	// return find_path(pathname, NULL, O_CREAT, RF_F) != NULL ? OK : -1;
 }
 
 int rf_create_dir(const char *dirname)
