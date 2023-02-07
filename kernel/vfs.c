@@ -633,7 +633,7 @@ int do_vchdir(const char *dirname)
 		if(index == -1)
 			return -1; // 修复bug：有可能用户一开始就输入了错误的路径
 		int fd = vfs_table[index].op->opendir(pathname);
-		if(fd == -1) {
+		if(fd < 0) {
 			return -1;
 		}
 		vfs_table[index].op->close(fd);
