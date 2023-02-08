@@ -46,7 +46,9 @@ static void rf_free_clu(int clu) {
 	{
 		nxt_clu = RF_FAT_ROOT[clu].next_cluster;
 		RF_FAT_ROOT[clu].next_cluster = 0;
-		do_free_4k(RF_FAT_ROOT[clu].addr);
+		if(do_free_4k(K_LIN2PHY(RF_FAT_ROOT[clu].addr)) == -1) {
+			panic("free error");
+		}
 		clu = nxt_clu;
 	}
 }
