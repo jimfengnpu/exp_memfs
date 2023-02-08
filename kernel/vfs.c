@@ -349,6 +349,10 @@ int sys_link(void *arg)
 	return do_vlink((const char*)get_arg(arg, 1), (const char*)get_arg(arg, 2));
 }
 
+int sys_readdir(void *arg) {
+	return do_vreaddir((int)get_arg(arg, 1), (char *)get_arg(arg, 2), (int)get_arg(arg, 3));
+}
+
 /*======================================================================*
                               do_v* 系列函数
  *======================================================================*/
@@ -676,4 +680,8 @@ int do_vlink(const char *oldpath, const char *newpath) {
 		return -1;
 	}
 	return vfs_table[index].op->link(oldpathname, newpathname);
+}
+
+int do_vreaddir(int fd, char *buf, int count) {
+	return 0;
 }
