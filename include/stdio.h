@@ -38,6 +38,7 @@ int read(int fd, void *buf, int count);			//added by xw, 18/6/19
 int write(int fd, const void *buf, int count);	//added by xw, 18/6/19
 int lseek(int fd, int offset, int whence);		//added by xw, 18/6/19
 int unlink(const char *pathname);				//added by xw, 18/6/19
+int readdir(int fd, char *buf, int count);
 //~xw
 
 /*string.asm*/

@@ -683,5 +683,8 @@ int do_vlink(const char *oldpath, const char *newpath) {
 }
 
 int do_vreaddir(int fd, char *buf, int count) {
-	return 0;
+	int index = p_proc_current->task.filp[fd]->dev_index;
+	if(index == VFS_INDEX_RAMFS)
+		return rf_readdir(fd, buf, count);
+	return -1;
 }

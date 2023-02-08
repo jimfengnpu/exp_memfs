@@ -536,3 +536,59 @@ int rf_link(const char *oldpath, const char *newpath)
 	}
 	return -ENOENT;
 }
+
+
+// 用于打印数字
+int num2str(char *buf, int num)
+{
+	int i = 0;
+	while(num) {
+		buf[i++] = num%10 + '0';
+		num /= 10;
+	}
+	int j = 0;
+	for(j = 0; j < i/2; j++) {
+		char tmp = buf[j];
+		buf[j] = buf[i-j-1];
+		buf[i-j-1] = tmp;
+	}
+	buf[i] = '\0';
+	return i;
+}
+// 用于ls
+int rf_readdir(int fd, void *buf, int length)
+{
+	lseek(fd, 0, SEEK_SET);
+	char tmp_buf[512];
+	int pos = 0;
+	char num_buf[15];
+	// while(rf_read(fd, tmp_buf, sizeof(rf_inode)) == sizeof(rf_inode)) {
+	// 	p_rf_inode p = (p_rf_inode)tmp_buf;
+	// 	if(p->record_type == RF_F) {
+	// 		memcpy(buf+pos, "file: ", strlen("file: "));
+	// 		pos += strlen("file: ");
+			
+	// 	} else if(p->record_type == RF_D) {
+	// 		memcpy(buf+pos, "dir: ", strlen("dir: "));
+	// 		pos += strlen("dir: ");
+	// 	}
+	// 	if(p->record_type == RF_F || p->record_type == RF_D) {
+	// 		memcpy(buf+pos, p->name, strlen(p->name));
+	// 		pos += strlen(p->name);
+	// 		memcpy(buf+pos, " size: ", strlen(" size: "));
+	// 		pos += strlen(" size: ");
+	// 		// memcpy(buf+pos, *p->size, sizeof(u32));
+	// 		num2str(num_buf, *p->size);
+	// 		memcpy(buf+pos, num_buf, strlen(num_buf));
+	// 		pos += strlen(num_buf);
+	// 		memcpy(buf+pos, "\n", strlen("\n"));
+	// 		pos += strlen("\n");
+	// 	}
+	// }
+	memcpy((void *)va2la(proc2pid(p_proc_current), buf), "hello world", strlen("hello world"));
+	// memcpy(buf, "hello world", strlen("hello world"));
+	pos = strlen("hello world");
+	// *(buf+pos) = 0;
+	*(char*)(buf+pos) = '\0';
+	return pos;
+}

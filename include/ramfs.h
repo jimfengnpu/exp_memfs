@@ -53,4 +53,6 @@ int rf_delete_dir(const char *dirname);
 int rf_unlink(const char *path);
 int rf_link(const char *oldpath, const char *newpath);
 
+int rf_readdir(int fd, void *buf, int length);
+
 #endif
