@@ -408,8 +408,8 @@ link:
 
 readdir:
 	push	ebx			
-	mov	ebx, esp
-	mov	eax, _NR_readdir
-	int	INT_VECTOR_SYS_CALL
-	pop	ebx
+	mov		ebx, esp
+	mov		eax, _NR_readdir
+	int		INT_VECTOR_SYS_CALL
+	pop		ebx
 	ret

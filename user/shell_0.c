@@ -128,7 +128,8 @@ int ls_u() {
 	}
 	int fd = opendir(tmp);
 	readdir(fd, data_buf, DATA_BUF_LEN);
-	printf("ls: %s\n", data_buf);
+	// printf("ls finished\n");
+	printf("%s\n", data_buf);
 	// if (fd == -1) {
 	// 	printf("open failed\n");
 	// 	return -1;
