@@ -78,9 +78,10 @@ static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 	// rf_write_record(dir_rec, "..", parent_dir, RF_D, 0);//dir to parent
 	p_rf_inode rec = (p_rf_inode)(RF_FAT_ROOT[dir_clu].addr);
 		
+	strcpy(rec->name, ".");
 	rec->record_type = RF_D;
-	rec->size = (u32*)do_kmalloc(sizeof(u32));
-	rec->link_cnt = (u32*)do_kmalloc(sizeof(u32));
+	rec->size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
+	rec->link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 	*rec->size = sizeof(rf_inode);
 	*rec->link_cnt = 0;
 	rec->start_cluster = dir_clu;
@@ -131,10 +132,10 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		rec[i].link_cnt = p_fa->link_cnt;
 	}
 	else if(type == RF_F) {
-		rec[i].size = (u32*)do_kmalloc(sizeof(u32)); // 初次分配
+		rec[i].size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32))); // 初次分配
 		// *rec[i].size = size;
 		*rec[i].size = 0;
-		rec[i].link_cnt = (u32*)do_kmalloc(sizeof(u32));
+		rec[i].link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 		*rec[i].link_cnt = 0;
 	}
 	else if(type == RF_D) {
