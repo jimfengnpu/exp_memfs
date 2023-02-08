@@ -41,6 +41,7 @@ int sys_delete(void *uesp);
 int sys_opendir(void *uesp);
 int sys_createdir(void *uesp);
 int sys_deletedir(void *uesp);
+int sys_link(void *uesp);
 
 int do_vopen(const char *path, int flags);
 int do_vclose(int fd);
@@ -56,6 +57,7 @@ int do_vcreatedir(char *dirname);
 int do_vdeletedir(char *dirname);
 int do_vchdir(const char *dirname);
 int do_vmkdir(char *dirname);
+int do_vlink(const char *oldpath, const char *newpath);
 
 void init_vfs();
 void init_file_desc_table();
@@ -91,6 +93,7 @@ struct file_op{
 	int (*opendir) 		(const char *);
 	int (*createdir) 	(const char *);
 	int (*deletedir) 	(const char *);
+	int (*link)         (const char *, const char *);
 };
 
 //added by mingxuan 2020-10-29

@@ -101,6 +101,7 @@ void init_fileop_table()
     f_op_table[3].opendir = rf_open_dir;
     f_op_table[3].createdir = rf_create_dir;
     f_op_table[3].deletedir = rf_delete_dir;
+	f_op_table[3].link = rf_link;
 
 //     f_op_table[0].get_cwd = get_cwd;
 //     f_op_table[1].get_cwd = get_cwd;
@@ -341,6 +342,11 @@ int sys_mkdir(char *arg)
 {
 	return do_vmkdir((char*)get_arg(arg, 1));
 	// return rf_create_dir((const char*)get_arg(arg, 1));
+}
+
+int sys_link(void *arg)
+{
+	return do_vlink((const char*)get_arg(arg, 1), (const char*)get_arg(arg, 2));
 }
 
 /*======================================================================*
@@ -652,4 +658,22 @@ int do_vmkdir(char *path) {
 	/* 由于目前的系统没有挂载mount功能，/ram文件夹是ramfs的根目录 */
 	int index = get_index(pathname);
 	return vfs_table[index].op->createdir(pathname);
+}
+
+int do_vlink(const char *oldpath, const char *newpath) {
+	int oldpathlen = strlen(oldpath);
+	int newpathlen = strlen(newpath);
+	char oldpathname[MAX_PATH];
+	char newpathname[MAX_PATH];
+	strcpy(oldpathname, oldpath);
+	strcpy(newpathname, newpath);
+	oldpathname[oldpathlen] = 0;
+	newpathname[newpathlen] = 0;
+	process_relative_path(oldpathname);
+	process_relative_path(newpathname);
+	int index = get_index(oldpathname);
+	if(index == -1) {
+		return -1;
+	}
+	return vfs_table[index].op->link(oldpathname, newpathname);
 }

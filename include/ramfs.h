@@ -17,7 +17,8 @@
 typedef struct{
 	char name[RF_MX_ENT_NAME];
 	u32 record_type;
-	u32 size;
+	u32 *size;
+	u32 *link_cnt;
 	u32 start_cluster;
 } rf_inode, *p_rf_inode;
 #define RF_NR_REC (RAM_FS_CLUSTER_SIZE/sizeof(rf_inode))
@@ -37,7 +38,7 @@ typedef struct{
 #include "fs.h"
 #include "fs_misc.h"
 void init_ram_fs();
-p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_type);
+p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_type, p_rf_inode p_fa);
 int rf_open(const char *path, int mode);
 int rf_close(int fd);
 int rf_read(int fd, void *buf, int length);
@@ -50,4 +51,6 @@ int rf_open_dir(const char *dirname);
 int rf_delete(const char *filename);
 int rf_delete_dir(const char *dirname);
 int rf_unlink(const char *path);
+int rf_link(const char *oldpath, const char *newpath);
+
 #endif
