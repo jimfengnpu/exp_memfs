@@ -14,30 +14,50 @@
 #include "errno.h"
 
 static p_rf_fat RF_FAT_ROOT;
-static p_rf_clu RF_DATA_ROOT;
+
 extern struct file_desc f_desc_table[NR_FILE_DESC];
 
-static int rf_find_first_free(){
+static int rf_alloc_clu(int clu){
+	RF_FAT_ROOT[clu].next_cluster = MAX_UNSIGNED_INT;
+	u32 phy_addr = do_malloc_4k();
+	if(phy_addr == -1){
+		return -1;
+	}
+	RF_FAT_ROOT[clu].addr = K_PHY2LIN(phy_addr);
+	memset((void*)RF_FAT_ROOT[clu].addr, 0, sizeof(rf_clu));
+	return 0;
+}
+
+static int rf_find_first_free_alloc(){
 	int i;
 	for (i = 0; i < RAM_FS_NR_CLU;i++){
-		if(*(RF_FAT_ROOT+i)==0)
+		if(RF_FAT_ROOT[i].next_cluster == 0) {
+			if(rf_alloc_clu(i) == -1)
+				break;
 			return i;
+		}
 	}
 	return -ENOMEM;
 }
-static void rf_alloc_clu(int clu){
-	*(RF_FAT_ROOT + clu) = MAX_UNSIGNED_INT;
-	memset(RF_DATA_ROOT+clu, 0, sizeof(rf_clu));
-}
 
-static u32 check_dir_size(u32 pClu)
+static void rf_free_clu(int clu) {
+	int nxt_clu = 0;
+	while (nxt_clu != MAX_UNSIGNED_INT)
+	{
+		nxt_clu = RF_FAT_ROOT[clu].next_cluster;
+		RF_FAT_ROOT[clu].next_cluster = 0;
+		do_free_4k(RF_FAT_ROOT[clu].addr);
+		clu = nxt_clu;
+	}
+}
+static u32 check_dir_size(u32 dir_clu)
 {
 	u32 dir_size = 0;
-	while(RF_FAT_ROOT[pClu] != MAX_UNSIGNED_INT) {
+	while(RF_FAT_ROOT[dir_clu].next_cluster != MAX_UNSIGNED_INT) {
 		dir_size += RAM_FS_CLUSTER_SIZE;
-		pClu = RF_FAT_ROOT[pClu];
+		dir_clu = RF_FAT_ROOT[dir_clu].next_cluster;
 	}
-	p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT+pClu);
+	p_rf_inode rec = (p_rf_inode)(RF_FAT_ROOT[dir_clu].addr);
 	int i;
 	for (i = RF_NR_REC - 1; i >= 0; i--) {
 		if(rec[i].record_type != RF_NONE){
@@ -54,7 +74,7 @@ static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 	// dir content
 	// rf_write_record(dir_rec, ".", dir_rec->start_cluster, RF_D, 0);//dir to itself
 	// rf_write_record(dir_rec, "..", parent_dir, RF_D, 0);//dir to parent
-	p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT + dir_clu);
+	p_rf_inode rec = (p_rf_inode)(RF_FAT_ROOT[dir_clu].addr);
 	strcpy(rec->name, ".");
 	rec->record_type = RF_D;
 	rec->size = sizeof(rf_inode);
@@ -73,11 +93,11 @@ static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 //dir_rec: 待写入的文件所在文件夹记录项(在上级目录文件数据中)
 static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entClu, u32 type, u32 size)
 {
-	u32 pClu = 0;
+	u32 dir_clu = 0;
 	if(dir_rec != NULL) {
-		pClu = dir_rec->start_cluster;
+		dir_clu = dir_rec->start_cluster;
 	}
-	p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT+pClu);
+	p_rf_inode rec = (p_rf_inode)(RF_FAT_ROOT[dir_clu].addr);
 	int i, inew;
 	for (i = 0; i < RF_NR_REC;){
 		if(rec[i].record_type == RF_NONE){
@@ -85,20 +105,19 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		}
 		i++;
 		if(i == RF_NR_REC) {
-			inew = rf_find_first_free();
+			inew = rf_find_first_free_alloc();
 			if(inew<0)
 				return NULL;
-			rf_alloc_clu(inew);
-			RF_FAT_ROOT[pClu] = inew;
+			RF_FAT_ROOT[dir_clu].next_cluster = inew;
 			// return rf_write_record(i, name, entClu, type, size);
-			pClu = inew;
+			dir_clu = inew;
 			i = 0;
 		}
 	}
 	
 	strcpy(rec[i].name, name);
 	rec[i].record_type = type;
-	u32 new_size = check_dir_size(pClu);
+	u32 new_size = check_dir_size(dir_clu);
 	rec->size = new_size;
 	if(type == RF_F) rec[i].size = size;
 	else if(type == RF_D) {
@@ -106,13 +125,22 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		rec[i].size = check_dir_size(entClu);
 	}
 	rec[i].start_cluster = entClu;
-	// pRF_REC parent = find_path("..", pClu, 0, RF_D);
+	// pRF_REC parent = find_path("..", dir_clu, 0, RF_D);
 	if(dir_rec != NULL) {
 		dir_rec->size = new_size;
 	}
 	return rec+i;
 }
 
+
+void init_ram_fs()
+{
+	//in syscall we can only use 3G~3G+128M so we init the two at the beginning
+	RF_FAT_ROOT = (p_rf_fat)K_PHY2LIN(do_kmalloc(sizeof(rf_fat) * RAM_FS_NR_CLU));
+	// RF_DATA_ROOT = (p_rf_clu)K_PHY2LIN(RAM_FS_DATA_BASE);
+	rf_alloc_clu(0);
+	init_dir_record(0, NULL);
+}
 
 // //return fat record, NULL if not found
 // //"ram/dir1/dir2/file":
@@ -222,7 +250,7 @@ p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_ty
 			ent_name[j] = path[pathpos];
 		}
 		ent_name[j] = '\0';
-		p_rf_inode rec = (p_rf_inode)(RF_DATA_ROOT + dir_clu);
+		p_rf_inode rec = (p_rf_inode)(RF_FAT_ROOT[dir_clu].addr);
 		int i;
 		for(i = 0; i < RF_NR_REC; i++) {
 			if(rec[i].record_type == RF_NONE) continue;
@@ -241,9 +269,9 @@ p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_ty
 			}
 		}
 		if(pathpos < len && i == RF_NR_REC) {
-			if(RF_FAT_ROOT[dir_clu] == MAX_UNSIGNED_INT)
+			if(RF_FAT_ROOT[dir_clu].next_cluster == MAX_UNSIGNED_INT)
 				return NULL;
-			dir_clu = RF_FAT_ROOT[dir_clu];
+			dir_clu = RF_FAT_ROOT[dir_clu].next_cluster;
 			continue;
 		}
 		else if(pathpos < len) { // 表示找到了目录，但是还没到文件末尾
@@ -252,9 +280,8 @@ p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_ty
 		}
 		if(pathpos == len && i == RF_NR_REC) {
 			if(flag & O_CREAT) {
-				int inew = rf_find_first_free();
+				int inew = rf_find_first_free_alloc();
 				if(inew < 0) return NULL;
-				rf_alloc_clu(inew);
 				// if(find_type == RF_D) {
 				// 	rf_write_record(inew, ".", inew, RF_D, 0);
 				// 	rf_write_record(inew, "..", dir_clu, RF_D, 0);
@@ -269,15 +296,6 @@ p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_ty
 	return NULL;
 }
 
-
-void init_ram_fs()
-{
-	//in syscall we can only use 3G~3G+128M so we init the two at the beginning
-	RF_FAT_ROOT = (p_rf_fat)K_PHY2LIN(RAM_FS_BASE);
-	RF_DATA_ROOT = (p_rf_clu)K_PHY2LIN(RAM_FS_DATA_BASE);
-	rf_alloc_clu(0);
-	init_dir_record(0, NULL);
-}
 
 //open and return fd
 int rf_open(const char *pathname, int flags)
@@ -398,10 +416,10 @@ int rf_read(int fd, void *buf, int length)
 	int st_clu = pf_rec->start_cluster;
 	while(cnt_clu != cur_nr_clu) {
 		cnt_clu++;
-		st_clu = RF_FAT_ROOT[st_clu];
+		st_clu = RF_FAT_ROOT[st_clu].next_cluster;
 	}
 	// assert(st_clu != MAX_UNSIGNED_INT); // 不可能是-1
-	p_rf_clu clu_data = RF_DATA_ROOT + st_clu;
+	p_rf_clu clu_data = (p_rf_clu) RF_FAT_ROOT[st_clu].addr;
 	char *rf_data = (char *)clu_data + cur_pos % RAM_FS_CLUSTER_SIZE;
 	int bytes_read = 0;
 	while(bytes_read < length && st_clu != MAX_UNSIGNED_INT) {
@@ -410,8 +428,8 @@ int rf_read(int fd, void *buf, int length)
 		bytes_to_read = min(bytes_to_read, pf_rec->size - cur_pos);
 		memcpy((void *)va2la(proc2pid(p_proc_current), buf + bytes_read), rf_data, bytes_to_read);
 		bytes_read += bytes_to_read;
-		st_clu = RF_FAT_ROOT[st_clu];
-		clu_data = RF_DATA_ROOT + st_clu;
+		st_clu = RF_FAT_ROOT[st_clu].next_cluster;
+		clu_data = (p_rf_clu) RF_FAT_ROOT[st_clu].addr;
 		rf_data = (char *)clu_data;
 	}
 	// 返回的字节数要么是length，要么是文件剩余的字节数
@@ -433,15 +451,14 @@ int rf_write(int fd, const void *buf, int length)
 		if(fat_offset==0)
 			break;
 		fat_offset--;
-		if(RF_FAT_ROOT[cluster] == MAX_UNSIGNED_INT){
-			int inew = rf_find_first_free();
+		if(RF_FAT_ROOT[cluster].next_cluster == MAX_UNSIGNED_INT){
+			int inew = rf_find_first_free_alloc();
 			assert(inew >= 0);
-			rf_alloc_clu(inew);
-			RF_FAT_ROOT[cluster] = inew;
+			RF_FAT_ROOT[cluster].next_cluster = inew;
 		}
-		cluster = RF_FAT_ROOT[cluster];
+		cluster = RF_FAT_ROOT[cluster].next_cluster;
 	}
-	p_rf_clu clu_data = RF_DATA_ROOT + cluster;
+	p_rf_clu clu_data = (p_rf_clu) RF_FAT_ROOT[cluster].addr;
 	char *rf_data = (char *)clu_data + pos % RAM_FS_CLUSTER_SIZE;
 	int bytes_write = 0;
 	//end of expected buf later than current cluster
@@ -450,14 +467,13 @@ int rf_write(int fd, const void *buf, int length)
 		int pref = (char *)(clu_data + 1) - rf_data;//part in this cluster, fixed 23.1.10 jf
 		memcpy(rf_data, (void*)va2la(proc2pid(p_proc_current), (void*)buf + bytes_write), pref);
 		bytes_write += pref;
-		if(RF_FAT_ROOT[cluster] == MAX_UNSIGNED_INT){
-			int inew = rf_find_first_free();
+		if(RF_FAT_ROOT[cluster].next_cluster == MAX_UNSIGNED_INT){
+			int inew = rf_find_first_free_alloc();
 			assert(inew >= 0);
-			rf_alloc_clu(inew);
-			RF_FAT_ROOT[cluster] = inew;
+			RF_FAT_ROOT[cluster].next_cluster = inew;
 		}
-		cluster = RF_FAT_ROOT[cluster];
-		clu_data = RF_DATA_ROOT + cluster;
+		cluster = RF_FAT_ROOT[cluster].next_cluster;
+		clu_data = (p_rf_clu) RF_FAT_ROOT[cluster].addr;
 		rf_data = (char *)clu_data;
 	}
 	memcpy(rf_data, (void*)va2la(proc2pid(p_proc_current), (void*)buf+bytes_write), length - bytes_write);
@@ -545,12 +561,8 @@ int rf_delete(const char *filename)
 	p_rf_inode pREC = find_path(filename, NULL, 0, RF_F);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		u32 clu = pREC->start_cluster, nxt_clu=0;
-		while(nxt_clu != MAX_UNSIGNED_INT){
-			nxt_clu = RF_FAT_ROOT[clu];
-			RF_FAT_ROOT[clu] = 0;
-			clu = nxt_clu;
-		}
+		u32 clu = pREC->start_cluster;
+		rf_free_clu(clu);
 		return 0;
 	}
 	return -ENOENT;
@@ -565,12 +577,8 @@ int rf_delete_dir(const char *dirname)
 			return -ENOTEMPTY;
 		}
 		pREC->record_type = RF_NONE;
-		u32 clu = pREC->start_cluster, nxt_clu=0;
-		while(nxt_clu != MAX_UNSIGNED_INT){
-			nxt_clu = RF_FAT_ROOT[clu];
-			RF_FAT_ROOT[clu] = 0;
-			clu = nxt_clu;
-		}
+		u32 clu = pREC->start_cluster;
+		rf_free_clu(clu);
 		return 0;
 	}
 	return -ENOENT;

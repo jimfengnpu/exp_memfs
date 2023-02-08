@@ -164,7 +164,7 @@ int rmdir_u() {
 		printf("rm failed\n");
 		return -1;
 	} else {
-		printf("rm %s finished\n", cmd_buf+3);
+		printf("rm %s finished\n", cmd_buf+6);
 		return 0;
 	}
 }

@@ -1,10 +1,10 @@
 #ifndef RAMFS_H
 #define RAMFS_H
 #include "type.h"
-
-#define RAM_FS_CLUSTER_SIZE 512	//512 bytes per cluster
-#define RAM_FS_BASE 0x02000000		//memman end 32M
-#define RAM_FS_NR_CLU (128*1024)
+#include "memman.h"
+#define RAM_FS_CLUSTER_SIZE 0x1000	//4k bytes per cluster
+//memman end 32M set enough space for fat(index)
+#define RAM_FS_NR_CLU (MEMEND / RAM_FS_CLUSTER_SIZE)
 #define RF_MX_ENT_NAME	20
 
 // 32M512k--96M512k data(dir record&file data)
@@ -30,9 +30,11 @@ typedef union{
 
 typedef rf_inode *p_rf_inode;
 typedef rf_clu *p_rf_clu;
-typedef u32 rf_fat, *p_rf_fat;
+typedef struct{
+	u32 next_cluster;
+	u32 addr;
+} rf_fat, *p_rf_fat;
 
-#define RAM_FS_DATA_BASE	(RAM_FS_BASE + sizeof(rf_fat) * RAM_FS_NR_CLU)
 
 
 #include "fs.h"
