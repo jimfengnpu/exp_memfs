@@ -127,19 +127,20 @@ int ls_u() {
 		strcpy(tmp, cmd_buf + 3);
 	}
 	int fd = opendir(tmp);
-	if (fd == -1) {
-		printf("open failed\n");
-		return -1;
-	}
-	lseek(fd, 0, SEEK_SET);
-	while(read(fd, data_buf, sizeof(rf_inode)) == sizeof(rf_inode)) {
-		rf_inode *p = (rf_inode *)data_buf;
-		if(p->record_type == RF_F) {
-			printf("file: %s size: %d\n", p->name, p->size);
-		} else if(p->record_type == RF_D) {
-			printf("dir: %s size: %d\n", p->name, p->size);
-		}
-	}
+	
+	// if (fd == -1) {
+	// 	printf("open failed\n");
+	// 	return -1;
+	// }
+	// lseek(fd, 0, SEEK_SET);
+	// while(read(fd, data_buf, sizeof(rf_inode)) == sizeof(rf_inode)) {
+	// 	rf_inode *p = (rf_inode *)data_buf;
+	// 	if(p->record_type == RF_F) {
+	// 		printf("file: %s size: %d\n", p->name, p->size);
+	// 	} else if(p->record_type == RF_D) {
+	// 		printf("dir: %s size: %d\n", p->name, p->size);
+	// 	}
+	// }
 	close(fd);
 	return 0; 
 }

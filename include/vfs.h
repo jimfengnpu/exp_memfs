@@ -43,6 +43,8 @@ int sys_createdir(void *uesp);
 int sys_deletedir(void *uesp);
 int sys_link(void *uesp);
 
+int sys_readdir(void *usep); // just write for ls command
+
 int do_vopen(const char *path, int flags);
 int do_vclose(int fd);
 int do_vread(int fd, char *buf, int count);
@@ -58,6 +60,7 @@ int do_vdeletedir(char *dirname);
 int do_vchdir(const char *dirname);
 int do_vmkdir(char *dirname);
 int do_vlink(const char *oldpath, const char *newpath);
+int do_vreaddir(int fd, char *buf, int count);
 
 void init_vfs();
 void init_file_desc_table();

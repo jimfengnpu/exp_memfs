@@ -40,6 +40,8 @@ _NR_deletedir   	equ 27 ;    //added by mingxuan 2019-5-17
 _NR_get_cwd             equ 28 ;    // added by xu
 _NR_chdir               equ 29 ;    // added by xu
 _NR_mkdir               equ 30 ;    // added by xu
+_NR_link        	equ 31 ;    // added by xu
+_NR_readdir	 		equ 32 ;    // added by xu
 
 
 INT_VECTOR_SYS_CALL	equ 0x90
@@ -79,6 +81,10 @@ global  deletedir	;		//added by mingxuan 2019-5-17
 global  get_cwd         ;               // added by xu
 global  chdir           ;		// added by xu
 global  mkdir           ;		// added by xu
+global  readdir         ;   // added by xu
+global  link            ;   // added by xu
+
+
 
 bits 32
 [section .text]
@@ -390,4 +396,20 @@ mkdir:
 	mov     eax, _NR_mkdir
 	int     INT_VECTOR_SYS_CALL
 	pop     ebx
+	ret
+
+link:
+	push    ebx
+	mov     ebx, esp
+	mov     eax, _NR_link
+	int     INT_VECTOR_SYS_CALL
+	pop     ebx
+	ret
+
+readdir:
+	push	ebx			
+	mov	ebx, esp
+	mov	eax, _NR_readdir
+	int	INT_VECTOR_SYS_CALL
+	pop	ebx
 	ret
