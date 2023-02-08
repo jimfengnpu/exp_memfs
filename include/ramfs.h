@@ -7,8 +7,7 @@
 #define RAM_FS_NR_CLU (MEMEND / RAM_FS_CLUSTER_SIZE)
 #define RF_MX_ENT_NAME	20
 
-// 32M512k--96M512k data(dir record&file data)
-// 64M/0.5k*4 = 512k FAT_NO_HEAD(0(start) as root not 2)
+// FAT_NO_HEAD(0(start) as root not 2)
 // fake FAT no strict entry format, just borrow the name
 // rf_inode record_type
 #define RF_NONE 0	//free
@@ -20,16 +19,14 @@ typedef struct{
 	u32 record_type;
 	u32 size;
 	u32 start_cluster;
-} rf_inode;
+} rf_inode, *p_rf_inode;
 #define RF_NR_REC (RAM_FS_CLUSTER_SIZE/sizeof(rf_inode))
 
 typedef union{
 	rf_inode entry[RF_NR_REC];
 	char data[RAM_FS_CLUSTER_SIZE];
-} rf_clu;
+} rf_clu, *p_rf_clu;
 
-typedef rf_inode *p_rf_inode;
-typedef rf_clu *p_rf_clu;
 typedef struct{
 	u32 next_cluster;
 	u32 addr;
