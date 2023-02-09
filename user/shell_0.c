@@ -303,6 +303,15 @@ int all_a_test() {
 	return 0;
 }
 
+int check_alphabet(int fd, int *ret, int *cur_pos) {
+	for(int i = 0;i < 100;i++) {
+		*ret = read(fd, data_buf, 1);
+		if(*ret != 1 || data_buf[0] != 'a'+((*cur_pos)%26))
+			return 0;
+		(*cur_pos)++;
+	}
+	return 1;
+}
 /*
  *向ram/alphabet_copy文件写入字母表，并读取。
  *检查方法：根据下表位置取模得到应为何字符，并对比。
@@ -323,33 +332,47 @@ int alphabet_copy_test() {
 	fd = open("alphabet_copy", O_RDWR);
 	check_expr(fd >= 0); // 重新打开文件
 	int check_state = 0, cur_pos = 0, ret = -1;
-	int check_alphabet() {
-		for(int i = 0;i < 100;i++) {
-			ret = read(fd, data_buf, 1);
-			if(ret != 1 || data_buf[0] != 'a'+(cur_pos%26))
-				return 0;
-			cur_pos++;
-		}
-		return 1;
-	};
 // 将文件指针移动到文件开头
 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); 
 	cur_pos = 0;
-	check_expr(check_alphabet() == 1);
+	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
 // 将文件指针移动到文件中间
 	check_expr(lseek(fd, 121323, SEEK_SET) >= 0);
 	cur_pos = 121323;
-	check_expr(check_alphabet() == 1);
+	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
 // 将文件指针移动到文件末尾
 	check_expr(lseek(fd, -1000, SEEK_END) >= 0);
 	cur_pos = tot_len - 1000;
-	check_expr(check_alphabet() == 1);
+	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
 	check_expr(close(fd) >= 0); // 关闭文件
 	check_expr(delete("alphabet_copy") >= 0); // 删除文件
 	printf("alphabet_copy_test pass!!!\n");
 	return 0;
 }
 
+int test_write_times(char *filename, int tot_len) {
+	int start_ticks = get_ticks();
+	int fd = open(filename, O_CREAT | O_RDWR);
+	check_expr(fd >= 0); // 创建文件
+	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
+	check_expr(close(fd) >= 0); // 关闭文件
+	int end_ticks = get_ticks();
+	close(fd);
+	return end_ticks - start_ticks;
+}
+int test_read_times(char *filename, int tot_len) {
+	int start_ticks = get_ticks();
+	int fd = open(filename, O_RDWR);
+	check_expr(fd >= 0);
+	check_expr(lseek(fd, 0, SEEK_SET) >= 0);
+	check_expr(read(fd, data_buf, tot_len) == tot_len);
+	check_expr(close(fd) >= 0);
+	int end_ticks = get_ticks();
+	close(fd);
+	delete(filename);
+	return end_ticks - start_ticks;
+}
 /*
  * 分别测试在ramfs和在orangefs上，写2e6 bytes的用时和读2e6 bytes的用时
 **/
@@ -358,31 +381,8 @@ int rw_cmp_test() {
 	int tot_len = 2e6;
 	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
 	data_buf[tot_len] = '\0';
-	int test_write_times(char *filename) {
-		int start_ticks = get_ticks();
-		int fd = open(filename, O_CREAT | O_RDWR);
-		check_expr(fd >= 0); // 创建文件
-		check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-		check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
-		check_expr(close(fd) >= 0); // 关闭文件
-		int end_ticks = get_ticks();
-		close(fd);
-		return end_ticks - start_ticks;
-	};
-	int test_read_times(char *filename) {
-		int start_ticks = get_ticks();
-		int fd = open(filename, O_RDWR);
-		check_expr(fd >= 0);
-		check_expr(lseek(fd, 0, SEEK_SET) >= 0);
-		check_expr(read(fd, data_buf, tot_len) == tot_len);
-		check_expr(close(fd) >= 0);
-		int end_ticks = get_ticks();
-		close(fd);
-		delete(filename);
-		return end_ticks - start_ticks;
-	};
-	int ram_w_2e6 = test_write_times("/ram/rw_cmp"), ram_r_2e6 = test_read_times("/ram/rw_cmp");
-	int orange_w_2e6 = test_write_times("/orange/rw_cmp"), orange_r_2e6 = test_read_times("/orange/rw_cmp");
+	int ram_w_2e6 = test_write_times("/ram/rw_cmp", tot_len), ram_r_2e6 = test_read_times("/ram/rw_cmp", tot_len);
+	int orange_w_2e6 = test_write_times("/orange/rw_cmp", tot_len), orange_r_2e6 = test_read_times("/orange/rw_cmp", tot_len);
 	printf("ramfs write 2e6 bytes: %d ticks\n", ram_w_2e6);
 	printf("ramfs read 2e6 bytes: %d ticks\n", ram_r_2e6);
 	printf("orangefs write 2e6 bytes: %d ticks\n", orange_w_2e6);
