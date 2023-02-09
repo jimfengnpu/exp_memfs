@@ -153,7 +153,7 @@ int exec_u() {
 }
 
 int rm_u() {
-	if(delete(cmd_buf+3) < 0) {
+	if(unlink(cmd_buf+3) < 0) {
 		printf("rm failed\n");
 		return -1;
 	} else {
@@ -163,7 +163,7 @@ int rm_u() {
 }
 
 int rmdir_u() {
-	if(deletedir(cmd_buf+6) < 0) {
+	if(unlink(cmd_buf+6) < 0) {
 		printf("rm failed\n");
 		return -1;
 	} else {
@@ -172,9 +172,35 @@ int rmdir_u() {
 	}
 }
 
+int link_u() {
+	char oldpath[512], newpath[512];
+	int i;
+	for(i = 5;i < strlen(cmd_buf);i++) {
+		if(cmd_buf[i] != ' ') {
+			oldpath[i-5] = cmd_buf[i];
+		} else {
+			oldpath[i-5] = '\0';
+			break;
+		}
+	}
+	if(cmd_buf[i+1] == '\0') {
+		printf("link failed\n");
+		return -1;
+	}
+	strcpy(newpath, cmd_buf+i+1);
+	printf("oldpath: %s newpath: %s\n", oldpath, newpath);
+	if(link(oldpath, newpath) < 0) {
+		printf("link failed\n");
+		return -1;
+	} else {
+		printf("link finished\n");
+		return 0;
+	}
+}
+
 // Make the function an element of the array 
 // so that it can be called by the index
-#define CMD_NUM 10
+#define CMD_NUM 11
 char *cmd_name[CMD_NUM] = {
 	"pwd",
 	"cd",
@@ -186,6 +212,7 @@ char *cmd_name[CMD_NUM] = {
 	"exec",
 	"rm",
 	"rmdir",
+	"link",
 };
 int (*cmd_table[CMD_NUM])() = {
 	pwd_u,
@@ -198,6 +225,7 @@ int (*cmd_table[CMD_NUM])() = {
 	exec_u,
 	rm_u,
 	rmdir_u,
+	link_u,
 };
 
 int cmd_parser() {
@@ -580,12 +608,12 @@ int main(int argc, char *argv[])
 	int stderr = open("dev_tty0", O_RDWR);
 	// fattest();
 	int wt = 0;
-	easytest();
-	all_a_test();
-	alphabet_copy_test();
-	rw_cmp_test();
-	ramfs2orange_test();
-	orange2ramfs_test();
+	// easytest();
+	// all_a_test();
+	// alphabet_copy_test();
+	// rw_cmp_test();
+	// ramfs2orange_test();
+	// orange2ramfs_test();
 	fake_shell();
 	while(1);
 }

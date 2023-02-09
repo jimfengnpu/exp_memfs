@@ -128,6 +128,8 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 	u32 new_size = check_dir_size(dir_clu);
 	*rec->size = new_size;
 	if(p_fa != NULL) {
+		rec[i].record_type = p_fa->record_type;
+		rec[i].start_cluster = p_fa->start_cluster;
 		rec[i].size = p_fa->size;
 		rec[i].link_cnt = p_fa->link_cnt;
 	}
@@ -137,6 +139,7 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		*rec[i].size = 0;
 		rec[i].link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 		*rec[i].link_cnt = 0;
+		rec[i].start_cluster = entClu; // 文件内容所在簇号
 	}
 	else if(type == RF_D) {
 		init_dir_record(entClu, rec); // link_cnt已经维护
@@ -144,8 +147,8 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		*rec[i].size = check_dir_size(entClu);
 		rec[i].link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 		*rec[i].link_cnt = 0;
+		rec[i].start_cluster = entClu; // 文件内容所在簇号
 	}
-	rec[i].start_cluster = entClu;
 	// pRF_REC parent = find_path("..", dir_clu, 0, RF_D);
 	if(dir_rec != NULL) {
 		*dir_rec->size = new_size;
@@ -533,15 +536,24 @@ int rf_link(const char *oldpath, const char *newpath)
 {
 	p_rf_inode old_inode_f = find_path(oldpath, NULL, 0, RF_F, NULL);
 	if(old_inode_f) {
-		*old_inode_f->link_cnt++;
-		return 
-		find_path(newpath, NULL, O_CREAT, old_inode_f->record_type, old_inode_f) == NULL ? -1 : 0;
+		// *old_inode_f->link_cnt++;
+		// return 
+		p_rf_inode debug_inode = find_path(newpath, NULL, O_CREAT, old_inode_f->record_type, old_inode_f);
+		if(debug_inode == NULL)
+			return -1;
+		else {
+			(*old_inode_f->link_cnt)++;
+			return 0;
+		}
 	}
 	p_rf_inode old_inode_d = find_path(oldpath, NULL, 0, RF_D, NULL);
 	if(old_inode_d) {
-		*old_inode_d->link_cnt++;
-		return 
-		find_path(newpath, NULL, O_CREAT, old_inode_d->record_type, old_inode_d) == NULL ? -1 : 0;
+		if(find_path(newpath, NULL, O_CREAT, old_inode_d->record_type, old_inode_d) == NULL)
+			return -1;
+		else {
+			(*old_inode_d->link_cnt)++;
+			return 0;
+		}
 	}
 	return -ENOENT;
 }

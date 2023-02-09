@@ -674,6 +674,7 @@ int do_vlink(const char *oldpath, const char *newpath) {
 	process_relative_path(oldpathname);
 	process_relative_path(newpathname);
 	int index = get_index(oldpathname);
+	get_index(newpathname);
 	if(index == -1) {
 		return -1;
 	}
