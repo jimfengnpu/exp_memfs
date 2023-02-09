@@ -581,11 +581,11 @@ int main(int argc, char *argv[])
 	// fattest();
 	int wt = 0;
 	easytest();
-	// all_a_test();
-	// alphabet_copy_test();
-	// rw_cmp_test();
-	// ramfs2orange_test();
-	// orange2ramfs_test();
+	all_a_test();
+	alphabet_copy_test();
+	rw_cmp_test();
+	ramfs2orange_test();
+	orange2ramfs_test();
 	fake_shell();
 	while(1);
 }

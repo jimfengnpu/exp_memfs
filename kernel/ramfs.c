@@ -255,7 +255,7 @@ int rf_open(const char *pathname, int flags)
 
 	/* find a free slot in PROCESS::filp[] */
 	int i;
-	for (i = 0; i < NR_FILES; i++) { //modified by mingxuan 2019-5-20 cp from fs.c
+	for (i = 0; i < NR_FILES; i++) {
 		if (p_proc_current->task.filp[i] == 0) {
 			fd = i;
 			break;
@@ -264,11 +264,10 @@ int rf_open(const char *pathname, int flags)
 	if(i == NR_FILES) {
 		return -EMFILE;
 	}
-	assert(0 <= fd && fd < NR_FILES);
+	assert(fd >= 0 && fd < NR_FILES);
 
 	/* find a free slot in f_desc_table[] */
 	for (i = 0; i < NR_FILE_DESC; i++)
-		//modified by mingxuan 2019-5-17
 		if (f_desc_table[i].flag == 0)
 			break;
 	if(i == NR_FILE_DESC) {
@@ -280,11 +279,9 @@ int rf_open(const char *pathname, int flags)
 	if(fd_ram) {
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
-		
-		f_desc_table[i].flag = 1;	//added by mingxuan 2019-5-17
-
+		f_desc_table[i].flag = 1;
 		/* connects file_descriptor with inode */
-		f_desc_table[i].fd_node.fd_ram = fd_ram;	//modified by mingxuan 2019-5-17
+		f_desc_table[i].fd_node.fd_ram = fd_ram;
 		f_desc_table[i].dev_index = VFS_INDEX_RAMFS;
 		f_desc_table[i].fd_mode = flags;
 		f_desc_table[i].fd_pos = 0;
@@ -363,7 +360,9 @@ int rf_write(int fd, const void *buf, int length)
 		fat_offset--;
 		if(RF_FAT_ROOT[cluster].next_cluster == MAX_UNSIGNED_INT){
 			int inew = rf_find_first_free_alloc();
-			assert(inew >= 0);
+			// assert(inew >= 0);
+			if(inew < 0) // no more space
+				return 0;
 			RF_FAT_ROOT[cluster].next_cluster = inew;
 		}
 		cluster = RF_FAT_ROOT[cluster].next_cluster;
@@ -379,7 +378,13 @@ int rf_write(int fd, const void *buf, int length)
 		bytes_write += pref;
 		if(RF_FAT_ROOT[cluster].next_cluster == MAX_UNSIGNED_INT){
 			int inew = rf_find_first_free_alloc();
-			assert(inew >= 0);
+			// assert(inew >= 0);
+			if(inew < 0) {// no more space
+				p_proc_current->task.filp[fd]->fd_pos += bytes_write;
+				if(p_proc_current->task.filp[fd]->fd_pos > *frec->size) 
+					*frec->size = p_proc_current->task.filp[fd]->fd_pos;
+				return bytes_write; // return bytes have been write
+			}
 			RF_FAT_ROOT[cluster].next_cluster = inew;
 		}
 		cluster = RF_FAT_ROOT[cluster].next_cluster;
@@ -421,8 +426,7 @@ int rf_lseek(int fd, int offset, int whence)
 
 int rf_create(const char *pathname)
 {
-	return rf_open(pathname, O_CREAT); // modified by xu for return value
-	// return find_path(pathname, NULL, O_CREAT, RF_F) != NULL ? OK : -1;
+	return rf_open(pathname, O_CREAT); 
 }
 
 int rf_create_dir(const char *dirname)
@@ -530,13 +534,14 @@ int rf_link(const char *oldpath, const char *newpath)
 	p_rf_inode old_inode_f = find_path(oldpath, NULL, 0, RF_F, NULL);
 	if(old_inode_f) {
 		*old_inode_f->link_cnt++;
-		// return rf_create(newpath);
-		return find_path(newpath, NULL, 0, RF_F, old_inode_f) == NULL ? -1 : 0;
+		return 
+		find_path(newpath, NULL, O_CREAT, old_inode_f->record_type, old_inode_f) == NULL ? -1 : 0;
 	}
 	p_rf_inode old_inode_d = find_path(oldpath, NULL, 0, RF_D, NULL);
 	if(old_inode_d) {
 		*old_inode_d->link_cnt++;
-		return find_path(newpath, NULL, 0, RF_D, old_inode_d) == NULL ? -1 : 0;
+		return 
+		find_path(newpath, NULL, O_CREAT, old_inode_d->record_type, old_inode_d) == NULL ? -1 : 0;
 	}
 	return -ENOENT;
 }
