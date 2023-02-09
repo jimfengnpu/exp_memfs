@@ -83,7 +83,7 @@ int deletedir(char *dirname);
 // int sys_DeleteDir(void *uesp);
 // int sys_ListDir(void *uesp);
 
-//文件系统的操作函数
+// vfs.h:文件系统的操作函数
 struct file_op{
 	int (*create)   	(const char*);
 	int (*open)    		(const char* ,int);

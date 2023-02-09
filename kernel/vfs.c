@@ -102,11 +102,6 @@ void init_fileop_table()
     f_op_table[3].createdir = rf_create_dir;
     f_op_table[3].deletedir = rf_delete_dir;
 	f_op_table[3].link = rf_link;
-
-//     f_op_table[0].get_cwd = get_cwd;
-//     f_op_table[1].get_cwd = get_cwd;
-//     f_op_table[2].get_cwd = get_cwd;
-//     f_op_table[3].get_cwd = get_cwd;
 }
 
 //added by mingxuan 2020-10-30
@@ -205,24 +200,27 @@ static void init_vfs_table(){  // modified by mingxuan 2020-10-30
 
 //path: /xxx/yyy  ==>  /xxx/yyy
 //path: xxx/yyy   ==>  /cwd/xxx/yyy
+//path: xx/./a    ==>  /cwd/xx/a
+//path: xx/../a   ==>  /cwd/a
+// 处理相对路径，得到绝对路径
 static void process_relative_path(char *path)
 {
-    if(path[0] == '/') return;
+    if(path[0] == '/') return; // 无需拼接，直接返回
     int path_len = strlen(path);
     int cwd_len = strlen(p_proc_current->task.cwd);
     if(strcmp(p_proc_current->task.cwd, "/") == 0) {
-	cwd_len = 0;
+		cwd_len = 0;
     }
     int i = path_len - 1;
     for(int j = i + cwd_len + 1; j > cwd_len; j--)
     {
-	path[j] = path[i--];
+		path[j] = path[i--];
     }
     memcpy(path, p_proc_current->task.cwd, cwd_len);
     path[cwd_len] = '/';
     path[path_len + cwd_len +1] = '\0';
 	int offs = 0, dir_stack[MAX_PATH], top = 0;
-	for( i = 0; i <= path_len + cwd_len + 1; i++) {
+	for( i = 0; i <= path_len + cwd_len + 1; i++) { // 维护"."和".."的栈
 		if((path[i] == '/' || i == path_len + cwd_len + 1) && path[i - 1] != '/') {
 			if(top) {
 				if(strncmp(path + dir_stack[top], "/.", i - dir_stack[top]) == 0) {
@@ -688,3 +686,19 @@ int do_vreaddir(int fd, char *buf, int count) {
 		return rf_readdir(fd, buf, count);
 	return -1;
 }
+
+
+// 截图演示用
+// char *pathname;
+// int index;
+// int fd;
+
+// int do_vopen(const char *path, int flags) {
+// 	/*...*/
+// 	process_relative_path(pathname); // get absolute path
+// 	/*...*/
+//     index = get_index(pathname);
+//     fd = vfs_table[index].op->open(pathname, flags);
+//     /*...*/
+//     return fd;    
+// }
