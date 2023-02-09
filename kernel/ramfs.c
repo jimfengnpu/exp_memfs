@@ -567,6 +567,9 @@ int num2str(char *buf, int num)
 		buf[i++] = num%10 + '0';
 		num /= 10;
 	}
+	if(i == 0) {
+		buf[i++] = '0';
+	}
 	int j = 0;
 	for(j = 0; j < i/2; j++) {
 		char tmp = buf[j];
