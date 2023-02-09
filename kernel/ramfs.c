@@ -470,8 +470,8 @@ int rf_delete(const char *filename)
 	if(pREC){
 		if(*pREC->link_cnt >= 1)
 			return -1; // todo: wait errno
-		do_free((u32)pREC->size, sizeof(u32));
-		do_free((u32)pREC->link_cnt, sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->size), sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
 		pREC->record_type = RF_NONE;
 		u32 clu = pREC->start_cluster;
 		rf_free_clu(clu);
@@ -488,8 +488,8 @@ int rf_delete_dir(const char *dirname)
 		pREC->record_type = RF_NONE;
 		if(*pREC->link_cnt >= 1)
 			return -1; // todo: wait errno
-		do_free((u32)pREC->size, sizeof(u32));
-		do_free((u32)pREC->link_cnt, sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->size), sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
 		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_inode)) {
 			return -ENOTEMPTY;
 		}
