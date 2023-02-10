@@ -31,7 +31,19 @@
 		"tuple": "c",
 		"utility": "c",
 		"algorithm": "c",
-		"chrono": "c"
+		"chrono": "c",
+		"hash_map": "c",
+		"bit": "c",
+		"deque": "c",
+		"list": "c",
+		"string": "c",
+		"vector": "c",
+		"memory_resource": "c",
+		"string_view": "c",
+		"memory": "c",
+		"random": "c",
+		"initializer_list": "c",
+		"stdexcept": "c"
 	},
 	"terminal.integrated.gpuAcceleration": "off"
 }

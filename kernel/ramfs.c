@@ -81,19 +81,19 @@ static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 		
 	strcpy(rec->name, ".");
 	rec->record_type = RF_D;
-	rec->size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
-	rec->link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
-	*rec->size = sizeof(rf_inode);
-	*rec->link_cnt = 0;
+	rec->p_size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
+	rec->p_link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
+	*rec->p_size = sizeof(rf_inode);
+	*rec->p_link_cnt = 0;
 	rec->start_cluster = dir_clu;
 	if(parent_rec != NULL) {
-		*rec->size += sizeof(rf_inode);
+		*rec->p_size += sizeof(rf_inode);
 		rec++;
 		strcpy(rec->name, "..");
 		rec->record_type = RF_D;
-		rec->size = parent_rec->size;
+		rec->p_size = parent_rec->p_size;
 		rec->start_cluster = parent_rec->start_cluster;
-		rec->link_cnt = parent_rec->link_cnt;
+		rec->p_link_cnt = parent_rec->p_link_cnt;
 	}
 }
 
@@ -118,7 +118,7 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 			if(inew<0)
 				return NULL;
 			RF_FAT_ROOT[dir_clu].next_cluster = inew;
-			// return rf_write_record(i, name, entClu, type, size);
+			// return rf_write_record(i, name, entClu, type, p_size);
 			dir_clu = inew;
 			i = 0;
 		}
@@ -127,33 +127,33 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 	strcpy(rec[i].name, name);
 	rec[i].record_type = type;
 	u32 new_size = check_dir_size(dir_clu);
-	*rec->size = new_size;
+	*rec->p_size = new_size;
 	if(p_fa != NULL) {
 		rec[i].record_type = p_fa->record_type;
 		rec[i].start_cluster = p_fa->start_cluster;
-		rec[i].size = p_fa->size;
-		rec[i].link_cnt = p_fa->link_cnt;
+		rec[i].p_size = p_fa->p_size;
+		rec[i].p_link_cnt = p_fa->p_link_cnt;
 	}
 	else if(type == RF_F) {
-		rec[i].size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32))); // 初次分配
-		// *rec[i].size = size;
-		*rec[i].size = 0;
-		rec[i].shared_cnt = 0;
-		rec[i].link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
-		*rec[i].link_cnt = 0;
+		rec[i].p_size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32))); // 初次分配
+		// *rec[i].p_size = p_size;
+		*rec[i].p_size = 0;
+		rec[i].open_cnt = 0;
+		rec[i].p_link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
+		*rec[i].p_link_cnt = 0;
 		rec[i].start_cluster = entClu; // 文件内容所在簇号
 	}
 	else if(type == RF_D) {
 		init_dir_record(entClu, rec); // link_cnt已经维护
-		rec[i].size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32))); // 初次分配
-		*rec[i].size = check_dir_size(entClu);
-		rec[i].link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
-		*rec[i].link_cnt = 0;
+		rec[i].p_size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32))); // 初次分配
+		*rec[i].p_size = check_dir_size(entClu);
+		rec[i].p_link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
+		*rec[i].p_link_cnt = 0;
 		rec[i].start_cluster = entClu; // 文件内容所在簇号
 	}
 	// pRF_REC parent = find_path("..", dir_clu, 0, RF_D);
 	if(dir_rec != NULL) {
-		*dir_rec->size = new_size;
+		*dir_rec->p_size = new_size;
 	}
 	return rec+i;
 }
@@ -203,7 +203,7 @@ p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_ty
 		for(i = 0; i < RF_NR_REC; i++) {
 			if(rec[i].record_type == RF_NONE) continue;
 			if(pathpos < len && rec[i].record_type == RF_D && strcmp(rec[i].name, ent_name) == 0) {
-				*rec[i].size = check_dir_size(rec[i].start_cluster);
+				*rec[i].p_size = check_dir_size(rec[i].start_cluster);
 				dir_rec = rec + i;
 				dir_clu = rec[i].start_cluster;
 				break;
@@ -211,7 +211,7 @@ p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_ty
 			if(pathpos == len && rec[i].record_type != RF_NONE && strcmp(rec[i].name, ent_name) == 0) {
 				if(rec[i].record_type == find_type) {
 					if(rec[i].record_type == RF_D)
-						*rec[i].size = check_dir_size(rec[i].start_cluster);
+						*rec[i].p_size = check_dir_size(rec[i].start_cluster);
 					return rec + i;
 				}
 				else return NULL;
@@ -278,7 +278,7 @@ int rf_open(const char *pathname, int flags)
 
 	p_rf_inode fd_ram = find_path(pathname, NULL, flags, RF_F, NULL);//from root
 	if(fd_ram) {
-		fd_ram->shared_cnt++;
+		fd_ram->open_cnt++;
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
 		f_desc_table[i].flag = 1;
@@ -300,8 +300,8 @@ int rf_close(int fd)
 	if(fd < 0 || fd > NR_FILES || p_proc_current->task.filp[fd] == 0) {
 		return -1;
 	}
-	if(p_proc_current->task.filp[fd]->fd_node.fd_ram->shared_cnt > 0)
-		p_proc_current->task.filp[fd]->fd_node.fd_ram->shared_cnt--;
+	if(p_proc_current->task.filp[fd]->fd_node.fd_ram->open_cnt > 0)
+		p_proc_current->task.filp[fd]->fd_node.fd_ram->open_cnt--;
 	p_proc_current->task.filp[fd]->fd_node.fd_ram = 0;
 	p_proc_current->task.filp[fd]->flag = 0;
 	p_proc_current->task.filp[fd] = 0;
@@ -320,7 +320,7 @@ int rf_read(int fd, void *buf, int length)
 	p_rf_inode pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
 	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
-	// assert(cur_pos <= pf_rec->size); // 偏移指针肯定小于文件大小 恰好到文件尾的时候，不该报assert吧
+	// assert(cur_pos <= pf_rec->p_size); // 偏移指针肯定小于文件大小 恰好到文件尾的时候，不该报assert吧
 	// 得到当前的起始簇
 	int cnt_clu = 0;
 	int st_clu = pf_rec->start_cluster;
@@ -336,7 +336,7 @@ int rf_read(int fd, void *buf, int length)
 		// read数据
 		int bytes_left = (char *)(clu_data + 1) - rf_data;
 		int bytes_to_read = min(bytes_left, length - bytes_read);
-		bytes_to_read = min(bytes_to_read, *pf_rec->size - cur_pos);
+		bytes_to_read = min(bytes_to_read, *pf_rec->p_size - cur_pos);
 		memcpy((void *)va2la(proc2pid(p_proc_current), buf + bytes_read), rf_data, bytes_to_read);
 		bytes_read += bytes_to_read;
 		st_clu = RF_FAT_ROOT[st_clu].next_cluster;
@@ -344,7 +344,7 @@ int rf_read(int fd, void *buf, int length)
 		rf_data = (char *)clu_data;
 	}
 	// 返回的字节数要么是length，要么是文件剩余的字节数
-	assert(bytes_read == length || bytes_read == *pf_rec->size - p_proc_current->task.filp[fd]->fd_pos);
+	assert(bytes_read == length || bytes_read == *pf_rec->p_size - p_proc_current->task.filp[fd]->fd_pos);
 	p_proc_current->task.filp[fd]->fd_pos += bytes_read; // 更新偏移指针
 	return bytes_read;
 }
@@ -385,8 +385,8 @@ int rf_write(int fd, const void *buf, int length)
 			// assert(inew >= 0);
 			if(inew < 0) {// no more space
 				p_proc_current->task.filp[fd]->fd_pos += bytes_write;
-				if(p_proc_current->task.filp[fd]->fd_pos > *frec->size) 
-					*frec->size = p_proc_current->task.filp[fd]->fd_pos;
+				if(p_proc_current->task.filp[fd]->fd_pos > *frec->p_size) 
+					*frec->p_size = p_proc_current->task.filp[fd]->fd_pos;
 				return bytes_write; // return bytes have been write
 			}
 			RF_FAT_ROOT[cluster].next_cluster = inew;
@@ -398,7 +398,7 @@ int rf_write(int fd, const void *buf, int length)
 	memcpy(rf_data, (void*)va2la(proc2pid(p_proc_current), (void*)buf+bytes_write), length - bytes_write);
 	pos += length;
 	p_proc_current->task.filp[fd]->fd_pos = pos;
-	if(pos > *frec->size) *frec->size = pos;
+	if(pos > *frec->p_size) *frec->p_size = pos;
 	return length;
 }
 
@@ -406,7 +406,7 @@ int rf_lseek(int fd, int offset, int whence)
 {
 	int pos = p_proc_current->task.filp[fd]->fd_pos;
 	//int f_size = p_proc_current->task.filp[fd]->fd_inode->i_size; 
-	int f_size = *p_proc_current->task.filp[fd]->fd_node.fd_ram->size; 
+	int f_size = *p_proc_current->task.filp[fd]->fd_node.fd_ram->p_size; 
 	switch (whence) {
 	case SEEK_SET:
 		pos = offset;
@@ -477,12 +477,12 @@ int rf_delete(const char *filename)
 {
 	p_rf_inode pREC = find_path(filename, NULL, 0, RF_F, NULL);
 	if(pREC){
-		if(*pREC->link_cnt >= 1)
+		if(*pREC->p_link_cnt >= 1)
 			return -1; // todo: wait errno
-		if(pREC->shared_cnt >= 1)
+		if(pREC->open_cnt >= 1)
 			return -1;
-		do_free(K_LIN2PHY((u32)pREC->size), sizeof(u32));
-		do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->p_size), sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->p_link_cnt), sizeof(u32));
 		pREC->record_type = RF_NONE;
 		u32 clu = pREC->start_cluster;
 		rf_free_clu(clu);
@@ -497,10 +497,10 @@ int rf_delete_dir(const char *dirname)
 	p_rf_inode pREC = find_path(dirname, NULL, 0, RF_D, NULL);
 	if(pREC){
 		pREC->record_type = RF_NONE;
-		if(*pREC->link_cnt >= 1)
+		if(*pREC->p_link_cnt >= 1)
 			return -1; // todo: wait errno
-		do_free(K_LIN2PHY((u32)pREC->size), sizeof(u32));
-		do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->p_size), sizeof(u32));
+		do_free(K_LIN2PHY((u32)pREC->p_link_cnt), sizeof(u32));
 		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_inode)) {
 			return -ENOTEMPTY;
 		}
@@ -517,17 +517,17 @@ int rf_unlink(const char *pathname)
 	// p_rf_inode pREC_f = find_path(pathname, NULL, 0, RF_F);
 	p_rf_inode prec_f = find_path(pathname, NULL, 0, RF_F, NULL);
 	if(prec_f) {
-		if(*prec_f->link_cnt == 0)
+		if(*prec_f->p_link_cnt == 0)
 			return rf_delete(pathname);
-		*prec_f->link_cnt--; 
+		*prec_f->p_link_cnt--; 
 		prec_f->record_type = RF_NONE;
 		return 0;
 	}
 	p_rf_inode prec_d = find_path(pathname, NULL, 0, RF_D, NULL);
 	if(prec_d) {
-		if(*prec_d->link_cnt == 0)
+		if(*prec_d->p_link_cnt == 0)
 			return rf_delete_dir(pathname);
-		*prec_d->link_cnt--;
+		*prec_d->p_link_cnt--;
 		prec_d->record_type = RF_NONE;
 		return 0;
 	}
@@ -539,13 +539,13 @@ int rf_link(const char *oldpath, const char *newpath)
 {
 	p_rf_inode old_inode_f = find_path(oldpath, NULL, 0, RF_F, NULL);
 	if(old_inode_f) {
-		// *old_inode_f->link_cnt++;
+		// *old_inode_f->p_link_cnt++;
 		// return 
 		p_rf_inode debug_inode = find_path(newpath, NULL, O_CREAT, old_inode_f->record_type, old_inode_f);
 		if(debug_inode == NULL)
 			return -1;
 		else {
-			(*old_inode_f->link_cnt)++;
+			(*old_inode_f->p_link_cnt)++;
 			return 0;
 		}
 	}
@@ -554,7 +554,7 @@ int rf_link(const char *oldpath, const char *newpath)
 		if(find_path(newpath, NULL, O_CREAT, old_inode_d->record_type, old_inode_d) == NULL)
 			return -1;
 		else {
-			(*old_inode_d->link_cnt)++;
+			(*old_inode_d->p_link_cnt)++;
 			return 0;
 		}
 	}
@@ -604,8 +604,8 @@ int rf_readdir(int fd, void *buf, int length)
 			pos += strlen(p->name);
 			memcpy(buf+pos, " size: ", strlen(" size: "));
 			pos += strlen(" size: ");
-			// memcpy(buf+pos, *p->size, sizeof(u32));
-			num2str(num_buf, *p->size);
+			// memcpy(buf+pos, *p->p_size, sizeof(u32));
+			num2str(num_buf, *p->p_size);
 			memcpy(buf+pos, num_buf, strlen(num_buf));
 			pos += strlen(num_buf);
 			memcpy(buf+pos, "\n", strlen("\n"));
