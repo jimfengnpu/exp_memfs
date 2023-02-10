@@ -403,7 +403,7 @@ int do_vwrite(int fd, const char *buf, int count) {
     int bytes;
     while(f_len)
     {
-        int iobytes = min(512, f_len); // todo : avoid hard code
+        int iobytes = min(512, f_len); 
         int i=0;
         for(i=0; i<iobytes; i++)
         {

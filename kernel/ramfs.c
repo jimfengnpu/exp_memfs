@@ -174,17 +174,19 @@ void init_ram_fs()
 1.找不到时，没返回NULL
 2.若是创建文件时，未到文件末尾时，还会创建。若上层文件夹不存在时，应返回NULL
 */
-//"ram/dir1/dir2/file":
-// ==>(vfs)get_index("ram/dir1/dir2/file"): get "ram" and pass "dir1/dir2/file" to funcs in ramfs
-// ==>(ramfs) find_path("dir1/dir2/file") in root: entname: dir1 cont_path:"dir2/file":
-// ==>... find_path("dir2/file") in dir1: entname:dir2 cont_path:"file":
-// ==>... find_path("file") in dir2: entname:file spos = 0
-// just for understanding, have changed to iteration instead of recursion
-// vfs调整后,ram默认存在(将fs_name作为一层文件夹)
-// 参数变更: 从dir_rec记录表示的文件夹开始搜索,NULL则从RAMFS的根开始
-// path: 文件路径; dir_rec: 路径起始文件夹记录; flag: 标志位; find_type: 查找类型(文件/文件夹); 
-// p_fa是为了链接时使用，其余情况则为NULL
-//return fat record, NULL if not found
+/*
+"ram/dir1/dir2/file":
+==>(vfs)get_index("ram/dir1/dir2/file"): get "ram" and pass "dir1/dir2/file" to funcs in ramfs
+==>(ramfs) find_path("dir1/dir2/file") in root: entname: dir1 cont_path:"dir2/file":
+==>... find_path("dir2/file") in dir1: entname:dir2 cont_path:"file":
+==>... find_path("file") in dir2: entname:file spos = 0
+just for understanding, have changed to iteration instead of recursion
+vfs调整后,ram默认存在(将fs_name作为一层文件夹)
+参数变更: 从dir_rec记录表示的文件夹开始搜索,NULL则从RAMFS的根开始
+path: 文件路径; dir_rec: 路径起始文件夹记录; flag: 标志位; find_type: 查找类型(文件/文件夹); 
+p_fa是为了链接时使用，其余情况则为NULL
+return fat record, NULL if not found
+*/
 p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_type, p_rf_inode p_fa) 
 {
 	u32 dir_clu = 0;
@@ -323,10 +325,9 @@ int rf_read(int fd, void *buf, int length)
 	p_rf_inode pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
 	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
-	// assert(cur_pos <= pf_rec->p_size); // 偏移指针肯定小于文件大小 恰好到文件尾的时候，不该报assert吧
-	// 得到当前的起始簇
+	if(cur_pos >= *pf_rec->p_size) return 0; // 已经读到文件尾
 	int cnt_clu = 0;
-	int st_clu = pf_rec->start_cluster;
+	int st_clu = pf_rec->start_cluster; // 得到当前的起始簇
 	while(cnt_clu != cur_nr_clu) {
 		cnt_clu++;
 		st_clu = RF_FAT_ROOT[st_clu].next_cluster;
@@ -497,12 +498,11 @@ int rf_delete(const char *filename)
 
 int rf_delete_dir(const char *dirname)
 {
-	// panic("todo: check empty in rf_delete_dir");
 	p_rf_inode pREC = find_path(dirname, NULL, 0, RF_D, NULL);
 	if(pREC){
 		pREC->record_type = RF_NONE;
 		if(*pREC->p_link_cnt >= 1)
-			return -1; // todo: wait errno
+			return -1;
 		do_free(K_LIN2PHY((u32)pREC->p_size), sizeof(u32));
 		do_free(K_LIN2PHY((u32)pREC->p_link_cnt), sizeof(u32));
 		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_inode)) {
