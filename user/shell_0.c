@@ -97,7 +97,6 @@ int write_u() {
 
 int cat_u() {
 	strcpy(tmp, cmd_buf+4);
-    printf("cat %s\n", tmp);
 	int fd = open(tmp, O_RDWR | O_CREAT);
 	if (fd == -1) {
 		printf("open failed\n");
@@ -112,7 +111,6 @@ int cat_u() {
 	else if(ret >= 0) {
 		cmd_buf[ret] = '\0';
 		printf("%s", cmd_buf);
-		printf("\ncat finished\n");
 		close(fd);
     } else {
 		close(fd);
@@ -128,21 +126,7 @@ int ls_u() {
 	}
 	int fd = opendir(tmp);
 	readdir(fd, data_buf, DATA_BUF_LEN);
-	// printf("ls finished\n");
 	printf("%s\n", data_buf);
-	// if (fd == -1) {
-	// 	printf("open failed\n");
-	// 	return -1;
-	// }
-	// lseek(fd, 0, SEEK_SET);
-	// while(read(fd, data_buf, sizeof(rf_inode)) == sizeof(rf_inode)) {
-	// 	rf_inode *p = (rf_inode *)data_buf;
-	// 	if(p->record_type == RF_F) {
-	// 		printf("file: %s size: %d\n", p->name, p->size);
-	// 	} else if(p->record_type == RF_D) {
-	// 		printf("dir: %s size: %d\n", p->name, p->size);
-	// 	}
-	// }
 	close(fd);
 	return 0; 
 }

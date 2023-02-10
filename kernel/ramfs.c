@@ -52,6 +52,7 @@ static void rf_free_clu(int clu) {
 		clu = nxt_clu;
 	}
 }
+
 static u32 check_dir_size(u32 dir_clu)
 {
 	u32 dir_size = 0;
@@ -156,7 +157,7 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 	return rec+i;
 }
 
-
+// 初始化ram文件系统
 void init_ram_fs()
 {
 	//in syscall we can only use 3G~3G+128M so we init the two at the beginning
@@ -229,10 +230,6 @@ p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_ty
 			if(flag & O_CREAT) {
 				int inew = rf_find_first_free_alloc();
 				if(inew < 0) return NULL;
-				// if(find_type == RF_D) {
-				// 	rf_write_record(inew, ".", inew, RF_D, 0);
-				// 	rf_write_record(inew, "..", dir_clu, RF_D, 0);
-				// } 
 				//dir init move to write_record
 				return rf_write_record(dir_rec, ent_name, inew, find_type, p_fa);
 			} else {
