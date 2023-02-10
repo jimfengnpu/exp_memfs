@@ -6,7 +6,7 @@
 #define RAM_FS_CLUSTER_SIZE 0x1000						// 一个数据块 4k 字节(与一个页面大小一致) 
 // memman end 32M set enough space for fat(index)
 #define RAM_FS_NR_CLU (MEMEND / RAM_FS_CLUSTER_SIZE)	// 索引表项的大小(根据内存大小开辟足够大)
-#define RF_MX_ENT_NAME	20
+#define RF_MX_ENT_NAME	128
 
 // FAT_NO_HEAD(0(start) as root not 2)
 // fake FAT no strict entry format, just borrow the name
