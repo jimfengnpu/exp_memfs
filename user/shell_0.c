@@ -273,11 +273,6 @@ int easytest() {
 	return 0;
 }
 
-// 针对vfs各种API的返回值情况进行测试，包括各种错误处理。
-int ret_value_test() {
-	// todo: 待整理完各个API文档后编写
-	return 0;
-}
 
 // 向ram/all_a写入2e6个字符'a'后，随机读取文件，进行检测。
 int all_a_test() {
