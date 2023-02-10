@@ -149,6 +149,7 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		*rec[i].p_size = check_dir_size(entClu);
 		rec[i].p_link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 		*rec[i].p_link_cnt = 0;
+		rec[i].open_cnt = 0;
 		rec[i].start_cluster = entClu; // 文件内容所在簇号
 	}
 	// pRF_REC parent = find_path("..", dir_clu, 0, RF_D);
@@ -300,8 +301,10 @@ int rf_close(int fd)
 	if(fd < 0 || fd > NR_FILES || p_proc_current->task.filp[fd] == 0) {
 		return -1;
 	}
-	if(p_proc_current->task.filp[fd]->fd_node.fd_ram->open_cnt > 0)
-		p_proc_current->task.filp[fd]->fd_node.fd_ram->open_cnt--;
+	if(p_proc_current->task.filp[fd]->fd_node.fd_ram->open_cnt <= 0) {
+		return -1;
+	}
+	p_proc_current->task.filp[fd]->fd_node.fd_ram->open_cnt--;
 	p_proc_current->task.filp[fd]->fd_node.fd_ram = 0;
 	p_proc_current->task.filp[fd]->flag = 0;
 	p_proc_current->task.filp[fd] = 0;
@@ -464,6 +467,7 @@ int rf_open_dir(const char *dirname)
 	if(fd_ram == NULL)
 		return -ENOENT;
 	// update f_desc_table
+	fd_ram->open_cnt++;
 	p_proc_current->task.filp[fd] = &f_desc_table[i];
 	f_desc_table[i].flag = 1;
 	f_desc_table[i].fd_node.fd_ram = fd_ram;

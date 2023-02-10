@@ -65,6 +65,7 @@ int touch_u() {
 		return -1;
 	}
 	printf("touch %s finished\n", tmp);
+	close(fd);
 	return 0;
 }
 
@@ -310,6 +311,7 @@ int all_a_test() {
 		check_expr(ret == 1); // 读取一个字符
 		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
 	}
+	check_expr(close(fd) == 0);
 	check_expr(delete("all_a") >= 0); // 删除文件
 	printf("all_a_test pass!!!\n");
 	return 0;
@@ -592,12 +594,12 @@ int main(int argc, char *argv[])
 	int stderr = open("dev_tty0", O_RDWR);
 	// fattest();
 	int wt = 0;
-	// easytest();
-	// all_a_test();
-	// alphabet_copy_test();
-	// rw_cmp_test();
-	// ramfs2orange_test();
-	// orange2ramfs_test();
+	easytest();
+	all_a_test();
+	alphabet_copy_test();
+	rw_cmp_test();
+	ramfs2orange_test();
+	orange2ramfs_test();
 	fake_shell();
 	while(1);
 }
