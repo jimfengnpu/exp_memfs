@@ -325,11 +325,9 @@ int rf_read(int fd, void *buf, int length)
 	p_rf_inode pf_rec = p_proc_current->task.filp[fd]->fd_node.fd_ram;
 	int cur_pos = p_proc_current->task.filp[fd]->fd_pos;
 	int cur_nr_clu = cur_pos / RAM_FS_CLUSTER_SIZE; // 得到当前是第几个簇
-	if(cur_pos >= pf_rec->p_size) return 0; // 已经读到文件尾
-	// assert(cur_pos <= pf_rec->p_size); // 偏移指针肯定小于文件大小 恰好到文件尾的时候，不该报assert吧
-	// 得到当前的起始簇
+	if(cur_pos >= *pf_rec->p_size) return 0; // 已经读到文件尾
 	int cnt_clu = 0;
-	int st_clu = pf_rec->start_cluster;
+	int st_clu = pf_rec->start_cluster; // 得到当前的起始簇
 	while(cnt_clu != cur_nr_clu) {
 		cnt_clu++;
 		st_clu = RF_FAT_ROOT[st_clu].next_cluster;
