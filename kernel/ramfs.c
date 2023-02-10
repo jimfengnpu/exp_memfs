@@ -138,6 +138,7 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		rec[i].size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32))); // 初次分配
 		// *rec[i].size = size;
 		*rec[i].size = 0;
+		rec[i].shared_cnt = 0;
 		rec[i].link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 		*rec[i].link_cnt = 0;
 		rec[i].start_cluster = entClu; // 文件内容所在簇号
@@ -277,6 +278,7 @@ int rf_open(const char *pathname, int flags)
 
 	p_rf_inode fd_ram = find_path(pathname, NULL, flags, RF_F, NULL);//from root
 	if(fd_ram) {
+		fd_ram->shared_cnt++;
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
 		f_desc_table[i].flag = 1;
@@ -295,9 +297,11 @@ int rf_open(const char *pathname, int flags)
 
 int rf_close(int fd)
 {
-	if(p_proc_current->task.filp[fd] == 0) {
+	if(fd < 0 || fd > NR_FILES || p_proc_current->task.filp[fd] == 0) {
 		return -1;
 	}
+	if(p_proc_current->task.filp[fd]->fd_node.fd_ram->shared_cnt > 0)
+		p_proc_current->task.filp[fd]->fd_node.fd_ram->shared_cnt--;
 	p_proc_current->task.filp[fd]->fd_node.fd_ram = 0;
 	p_proc_current->task.filp[fd]->flag = 0;
 	p_proc_current->task.filp[fd] = 0;
@@ -475,6 +479,8 @@ int rf_delete(const char *filename)
 	if(pREC){
 		if(*pREC->link_cnt >= 1)
 			return -1; // todo: wait errno
+		if(pREC->shared_cnt >= 1)
+			return -1;
 		do_free(K_LIN2PHY((u32)pREC->size), sizeof(u32));
 		do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
 		pREC->record_type = RF_NONE;
