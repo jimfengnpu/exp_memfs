@@ -238,15 +238,7 @@ void fake_shell() {
 		printf("\nminiOS:%s $ ",tmp);
 		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
 		{
-			if(cmd_parser() == -CMD_NOFOUND) {
-				int pid = fork();
-				int status;
-				if(pid) {
-					wait(&status);
-				}else{
-					exec(cmd_buf);
-				}
-			}
+			cmd_parser();
 		}
 	}
 }
@@ -605,14 +597,22 @@ int main(int argc, char *argv[])
 	// rw_cmp_test();
 	// ramfs2orange_test();
 	// orange2ramfs_test();
-	fake_shell();
+	// fake_shell();
 	while(1) {
 		memset(cmd_buf, 0, MAX_CMD_LEN);
 		get_cwd(tmp);
 		printf("\nminiOS:%s $ ",tmp);
 		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
 		{
-			cmd_parser();
+			if(cmd_parser() == -CMD_NOFOUND) {
+				int pid = fork();
+				int status;
+				if(pid) {
+					wait(&status);
+				}else{
+					exec(cmd_buf);
+				}
+			}
 		}
 	}
 }
