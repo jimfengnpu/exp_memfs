@@ -31,6 +31,8 @@ KERN_SRCFILES :=kernel/kernel.asm	\
 		kernel/i8259.c	\
 		kernel/testfunc.c	\
 		kernel/protect.c	\
+		kernel/exit.c		\
+		kernel/wait.c 		\
 		lib/klib.c		\
 		lib/kliba.asm		\
 

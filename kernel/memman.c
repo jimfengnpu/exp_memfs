@@ -12,7 +12,7 @@ u32 MemInfo[256] = {0};			//存放FMIBuff后1k内容
 struct MEMMAN s_memman;
 struct MEMMAN *memman = &s_memman;//(struct MEMMAN *) MEMMAN_ADDR;
 
-
+static u32 page_alloc_cnt[(MEMEND - MEMSTART)/num_4K];
 void memman_init(struct MEMMAN *man);
  u32 memman_alloc(struct MEMMAN *man,u32 size);
  u32 memman_kalloc(struct MEMMAN *man,u32 size);

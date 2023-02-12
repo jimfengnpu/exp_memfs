@@ -160,6 +160,7 @@ typedef struct s_proc {
 	//~zcr
 	// adder by anjie xu
 	char cwd[MAX_PATH]; // current working directory
+	int	exit_code;      // add jf for exit & wait
 }PROCESS_0;
 
 //new PROCESS struct with PCB and process's kernel stack

@@ -161,7 +161,8 @@ static u32 exec_load(u32 fd,const Elf32_Ehdr* Echo_Ehdr,const Elf32_Phdr Echo_Ph
 		disp_color_str("exec_load: elf ERROR!",0x74);
 		return -1;
 	}
-
+	p_proc_current->task.memmap.text_lin_base = MAX_INT;
+	p_proc_current->task.memmap.text_lin_limit = 0;
 	//我们还不能确定elf中一共能有几个program，但就目前我们查看过的elf文件中，只出现过两中program，一种.text（R-E）和一种.data（RW-）
 	for( ph_num=0; ph_num<Echo_Ehdr->e_phnum ; ph_num++ )
 	{
@@ -172,8 +173,10 @@ static u32 exec_load(u32 fd,const Elf32_Ehdr* Echo_Ehdr,const Elf32_Phdr Echo_Ph
 		if( Echo_Phdr[ph_num].p_flags == 0x5 || Echo_Phdr[ph_num].p_flags == 0x4) //101，只读
 		{//.text
 			exec_elfcpy(fd,Echo_Phdr[ph_num],PG_P  | PG_USU | PG_RWR);//进程代码段
-			p_proc_current->task.memmap.text_lin_base = Echo_Phdr[ph_num].p_vaddr;	
-			p_proc_current->task.memmap.text_lin_limit = Echo_Phdr[ph_num].p_vaddr + Echo_Phdr[ph_num].p_memsz;
+			p_proc_current->task.memmap.text_lin_base = 
+				min(p_proc_current->task.memmap.text_lin_base, Echo_Phdr[ph_num].p_vaddr);	
+			p_proc_current->task.memmap.text_lin_limit = 
+				max(p_proc_current->task.memmap.text_lin_limit, Echo_Phdr[ph_num].p_vaddr + Echo_Phdr[ph_num].p_memsz);
 		}
 		else if(Echo_Phdr[ph_num].p_flags == 0x6)//110，读写
 		{//.data

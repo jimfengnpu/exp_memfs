@@ -84,6 +84,8 @@ system_call sys_call_table[NR_SYS_CALL] = {
     sys_mkdir,      // added by xu
 	sys_link,       // added by xu
 	sys_readdir,    // added by xu
+	sys_exit,
+	sys_wait,
 };
 
 TTY tty_table[NR_CONSOLES];	    // added by mingxuan 2019-5-19

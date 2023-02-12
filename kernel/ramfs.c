@@ -11,11 +11,14 @@
 #include "vfs.h"
 #include "fat32.h"
 #include "fs.h"
+#include "spinlock.h"
 #include "errno.h"
 
 static p_rf_fat RF_FAT_ROOT;
  
 extern struct file_desc f_desc_table[NR_FILE_DESC];
+
+static struct spinlock ramfs_lock;
 
 static int rf_alloc_clu(int clu){
 	RF_FAT_ROOT[clu].next_cluster = MAX_UNSIGNED_INT;

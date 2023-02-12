@@ -59,7 +59,7 @@ int mkdir_u() {
 
 int touch_u() {
 	strcpy(tmp, cmd_buf+6);
-	int fd = open(tmp, O_RDWR | O_CREAT);
+	int fd = create(tmp/*, O_RDWR | O_CREAT*/);
 	if (fd == -1) {
 		printf("open failed\n");
 		return -1;
@@ -131,8 +131,8 @@ int ls_u() {
 	return 0; 
 }
 
-int exec_u() {
-	exec(cmd_buf+5);
+int exit_u() {
+	exit(0);
 	return 0;
 }
 
@@ -193,7 +193,7 @@ char *cmd_name[CMD_NUM] = {
 	"write",
 	"cat",
 	"ls",
-	"exec",
+	"exit",
 	"rm",
 	"rmdir",
 	"link",
@@ -206,7 +206,7 @@ int (*cmd_table[CMD_NUM])() = {
 	write_u,
 	cat_u,
 	ls_u,
-	exec_u,
+	exit_u,
 	rm_u,
 	rmdir_u,
 	link_u,
@@ -223,10 +223,10 @@ int cmd_parser() {
 			return cmd_table[i]();
 		}
 	}
-	if (i == CMD_NUM)
-	{
-		printf("command not found\n");
-	}
+	// if (i == CMD_NUM)
+	// {
+	// 	printf("command not found\n");
+	// }
 	return -CMD_NOFOUND;
 }
 
@@ -238,7 +238,15 @@ void fake_shell() {
 		printf("\nminiOS:%s $ ",tmp);
 		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
 		{
-			cmd_parser();
+			if(cmd_parser() == -CMD_NOFOUND) {
+				int pid = fork();
+				int status;
+				if(pid) {
+					wait(&status);
+				}else{
+					exec(cmd_buf);
+				}
+			}
 		}
 	}
 }
@@ -584,7 +592,6 @@ void high_rw_test() {
 	fake_shell();
 }
 
-
 int main(int argc, char *argv[])
 {
 	int stdin = open("dev_tty0", O_RDWR);
@@ -599,7 +606,15 @@ int main(int argc, char *argv[])
 	// ramfs2orange_test();
 	// orange2ramfs_test();
 	fake_shell();
-	while(1);
+	while(1) {
+		memset(cmd_buf, 0, MAX_CMD_LEN);
+		get_cwd(tmp);
+		printf("\nminiOS:%s $ ",tmp);
+		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
+		{
+			cmd_parser();
+		}
+	}
 }
 
 

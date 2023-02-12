@@ -42,6 +42,8 @@ _NR_chdir               equ 29 ;    // added by xu
 _NR_mkdir               equ 30 ;    // added by xu
 _NR_link        	equ 31 ;    // added by xu
 _NR_readdir	 		equ 32 ;    // added by xu
+_NR_exit			equ 33;
+_NR_wait			equ 34;
 
 
 INT_VECTOR_SYS_CALL	equ 0x90
@@ -83,6 +85,8 @@ global  chdir           ;		// added by xu
 global  mkdir           ;		// added by xu
 global  readdir         ;   // added by xu
 global  link            ;   // added by xu
+global  exit
+global  wait
 
 
 
@@ -410,6 +414,22 @@ readdir:
 	push	ebx			
 	mov		ebx, esp
 	mov		eax, _NR_readdir
+	int		INT_VECTOR_SYS_CALL
+	pop		ebx
+	ret
+
+$wait:
+	push	ebx			
+	mov		ebx, esp
+	mov		eax, _NR_wait
+	int		INT_VECTOR_SYS_CALL
+	pop		ebx
+	ret
+
+exit:
+	push	ebx			
+	mov		ebx, esp
+	mov		eax, _NR_exit
 	int		INT_VECTOR_SYS_CALL
 	pop		ebx
 	ret

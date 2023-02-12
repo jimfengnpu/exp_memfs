@@ -129,7 +129,14 @@ void initial()
 	do_vclose(stdout);
 	do_vclose(stderr);
 
-	exec("orange/shell_0.bin");
-
-	while(1);
+	int pid = fork();
+	if(!pid) {
+		exec("orange/shell_0.bin");
+	}
+	else {
+		int st;
+		while(1) {
+			wait(&st);
+		}
+	}
 }

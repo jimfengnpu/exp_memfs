@@ -87,6 +87,8 @@ void yield();				//added by xw, 18/4/19
 void sleep(int n);			//added by xw, 18/4/19
 void print_E();
 void print_F();
+void exit(int status);
+int wait(int *wstatus);
 
 /* syscallc.c */		//edit by visual 2016.4.6
 int   sys_get_ticks();           /* sys_call */
@@ -103,6 +105,8 @@ void sys_udisp_str(char* arg);		//add by visual 2016.5.16
 int sys_get_cwd(char* arg);
 int sys_chdir(char* arg);
 int sys_mkdir(char* arg);
+void sys_exit(char* arg);
+int sys_wait(char* arg);
 
 /* proc.c */
 PROCESS* alloc_PCB();
