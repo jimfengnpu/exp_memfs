@@ -6,10 +6,11 @@
 #include "proto.h"
 #include "memman.h"
 #include "errno.h"
-// modified from ch6
+// modified from ch6  by jianfeng 23/2/12
 static void free_mem_child(PROCESS_0 *p_child) {
 	u32 addr_lin;
 	//复制代码，代码是共享的，直接将物理地址挂载在子进程的页表上
+	//简单说明一下 如果子进程(待回收)的父进程不是亲父进程,那么一定是亲父进程先退出,初始进程回收退出后的子进程,此时可以释放代码页
 	if(p_child->info.ppid != p_child->info.real_ppid){
 		for(addr_lin = p_child->memmap.text_lin_base ; addr_lin < p_child->memmap.text_lin_limit ; addr_lin+=num_4K )
 		{

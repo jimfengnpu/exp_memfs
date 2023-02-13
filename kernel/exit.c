@@ -5,7 +5,7 @@
 #include "global.h"
 #include "proto.h"
 #include "x86.h"
-
+// modified from ch6 by jianfeng 23/2/12
 void kern_exit(PROCESS_0 *p_proc, int exit_code)
 {
 	// 托孤，将所有子进程转移到初始进程下
