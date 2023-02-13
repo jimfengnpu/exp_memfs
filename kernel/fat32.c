@@ -37,6 +37,7 @@ File f_desc_table_fat[NR_FILE_DESC];
 
 static void load_disk();
 static void mkfs_fat();
+int FAT_DRV = PRIMARY_SLAVE;
 
 STATE DeleteDir(const char *dirname)
 {
@@ -557,7 +558,7 @@ void init_fs_fat()
 	
 	buf = (u8*)K_PHY2LIN(sys_kmalloc(FSBUF_SIZE));
 
-    int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+    int fat32_dev = get_fs_dev(FAT_DRV, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
 	//load_disk(FAT_DEV);	// deleted by mingxuan 2020-10-27
 	load_disk(fat32_dev);	// modified by mingxuan 2020-10-27
@@ -576,14 +577,15 @@ static void load_disk(int dev) {
 	MESSAGE driver_msg;
 	PCHAR cur="V:\\";
 
-	driver_msg.type		= DEV_READ;
-	driver_msg.DEVICE	= MINOR(dev);
-	driver_msg.POSITION	= SECTOR_SIZE * 1;
-	driver_msg.BUF		= buf;
-	driver_msg.CNT		= SECTOR_SIZE;
-	driver_msg.PROC_NR	= proc2pid(p_proc_current);///TASK_A
+	// driver_msg.type		= DEV_READ;
+	// driver_msg.DEVICE	= MINOR(dev);
+	// driver_msg.POSITION	= SECTOR_SIZE * 1;
+	// driver_msg.BUF		= buf;
+	// driver_msg.CNT		= SECTOR_SIZE;
+	// driver_msg.PROC_NR	= proc2pid(p_proc_current);///TASK_A
 
-	hd_rdwt(&driver_msg);
+	// hd_rdwt(&driver_msg);
+	RD_SECT(dev, 1, buf);
 
     memcpy(&Bytes_Per_Sector,buf+11,2);
 	memcpy(&Sectors_Per_Cluster,buf+13,1);
@@ -599,7 +601,7 @@ static void load_disk(int dev) {
 static void mkfs_fat() {
     MESSAGE driver_msg;
 
-	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+	int fat32_dev = get_fs_dev(FAT_DRV, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
 	/* get the geometry of ROOTDEV */
 	struct part_info geo;

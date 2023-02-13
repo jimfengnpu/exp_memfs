@@ -79,6 +79,7 @@
 #define PRIMARY_SLAVE		0x1
 #define SECONDARY_MASTER	0x2
 #define SECONDARY_SLAVE		0x3
+#define RAMDISK_DRV		PRIMARY_SLAVE
 
 /* device numbers of hard disk */
 #define MINOR_hd0		0x0	// added by mingxuan 2020-10-9
@@ -87,7 +88,10 @@
 
 #define	MINOR_hd1a		0x10
 #define	MINOR_hd2a		(MINOR_hd1a + NR_SUB_PER_PART) // MINOR_hd2a = 16 + 16
-
+#define	DRV_OF_DEV(dev) (dev <= MAX_PRIM ? \
+			 dev / NR_PRIM_PER_DRIVE : \
+			 (dev - MINOR_hd1a) / NR_SUB_PER_DRIVE)
+			 
 #define MAJOR_FAT		0x4		//modified by mingxuan 2020-10-22	
 
 #define	MINOR_BOOT		MINOR_hd2		//modified by mingxuan 2020-10-12

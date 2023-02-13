@@ -78,7 +78,6 @@ int kernel_main()
 	
 	/* initialize hd-irq and hd rdwt queue */
 	init_hd();
-	
 	/* enable interrupt, we should read information of some devices by interrupt.
 	 * Note that you must have initialized all devices ready before you enable
 	 * interrupt. added by xw
@@ -93,11 +92,13 @@ int kernel_main()
 
 	//hd_open(MINOR(ROOT_DEV));
 	hd_open(PRIMARY_MASTER);	//modified by mingxuan 2020-10-27
+	ramdisk_init();
 
 	init_vfs();		//added by mingxuan 2020-10-30
 	init_fs();
 	init_fs_fat();	//added by mingxuan 2019-5-17
-	init_ram_fs();
+	// init_ram_fs();
+
 	// init_vfs();	//added by mingxuan 2019-5-17	//deleted by mingxuan 2020-10-30
 
 	/*************************************************************************

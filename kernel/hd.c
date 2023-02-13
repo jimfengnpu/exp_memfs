@@ -33,7 +33,7 @@ static volatile int hd_int_waiting_flag;
 static	u8 hd_status;
 static	u8 hdbuf[SECTOR_SIZE * 2];
 //static	struct hd_info hd_info[1];
-struct hd_info hd_info[1];		//modified by mingxuan 2020-10-27
+struct hd_info hd_info[2];		//modified by mingxuan 2020-10-27
 
 static void init_hd_queue(HDQueue *hdq);
 static void in_hd_queue(HDQueue *hdq, RWInfo *p);
@@ -42,7 +42,7 @@ static void hd_rdwt_real(RWInfo *p);
 
 static void get_part_table(int drive, int sect_nr, struct part_ent *entry);
 static void partition(int device, int style);
-static void print_hdinfo(struct hd_info *hdi);
+void print_hdinfo(struct hd_info *hdi);
 static void hd_identify(int drive);
 static void print_identify_info(u16 *hdinfo);
 static void hd_cmd_out(struct hd_cmd *cmd);
@@ -53,9 +53,6 @@ static void hd_handler(int irq);
 static int  waitfor(int mask, int val, int timeout);
 //~xw
 
-#define	DRV_OF_DEV(dev) (dev <= MAX_PRIM ? \
-			 dev / NR_PRIM_PER_DRIVE : \
-			 (dev - MINOR_hd1a) / NR_SUB_PER_DRIVE)
 
 /*****************************************************************************
  *                                init_hd
@@ -321,7 +318,7 @@ void hd_ioctl(MESSAGE * p)
 		void * dst = va2la(p->PROC_NR, p->BUF);
 		void * src = va2la(proc2pid(p_proc_current),
 				   device < MAX_PRIM ?
-				   &hdi->primary[device] :
+				   &hdi->primary[device % NR_PRIM_PER_DRIVE] :
 				   &hdi->logical[(device - MINOR_hd1a) %
 						NR_SUB_PER_DRIVE]);
 
@@ -473,7 +470,7 @@ static void partition(int device, int style)
  * 
  * @param hdi  Ptr to struct hd_info.
  *****************************************************************************/
-static void print_hdinfo(struct hd_info * hdi)
+void print_hdinfo(struct hd_info * hdi)
 {
 	int i;
 	for (i = 0; i < NR_PART_PER_DRIVE + 1; i++) {

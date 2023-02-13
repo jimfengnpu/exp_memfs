@@ -297,10 +297,11 @@ typedef struct
 } HDQueue;
 
 void init_hd();
+void ramdisk_init();
 void hd_open(int device);
 void hd_close(int device);
 void hd_service();
-
+void print_hdinfo(struct hd_info * hdi);
 void hd_rdwt(MESSAGE *p);
 void hd_rdwt_sched(MESSAGE *p);
 void hd_ioctl(MESSAGE *p);

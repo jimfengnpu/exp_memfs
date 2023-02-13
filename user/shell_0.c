@@ -85,7 +85,7 @@ int write_u() {
 		printf("open failed\n");
 		return -1;
 	}
-	lseek(fd, 0, SEEK_SET);
+	// lseek(fd, 0, SEEK_SET);fat0 has no lseek
 	int ret = write(fd, cmd_buf+i+1, strlen(cmd_buf)-i-1);
 	if (ret == -1) {
 		printf("write failed\n");
@@ -97,12 +97,12 @@ int write_u() {
 
 int cat_u() {
 	strcpy(tmp, cmd_buf+4);
-	int fd = open(tmp, O_RDWR | O_CREAT);
+	int fd = open(tmp, O_RDWR);
 	if (fd == -1) {
 		printf("open failed\n");
 		return -1;
 	}
-	lseek(fd, 0, SEEK_SET);
+	// lseek(fd, 0, SEEK_SET);fat0 has no lseek
 	int ret = read(fd, cmd_buf, MAX_CMD_LEN);
 	if (ret == -1) {
 		printf("read failed\n");

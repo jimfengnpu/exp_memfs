@@ -29,13 +29,13 @@ UINT Position_Of_FAT1=0;//FAT1的位置。
 UINT Position_Of_FAT2=0;//FAT2的位置。
 
 extern CHAR cur_path[256];
-
+extern int FAT_DRV;
 BYTE FATBuf[1024]={0};
 DWORD globalSectorIndex=-1;
 
 void ReadSector(BYTE* buf,DWORD sectorIndex)
 {
-	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+	int fat32_dev = get_fs_dev(FAT_DRV, FAT32_TYPE);	//added by mingxuan 2020-10-27
 
     //RD_SECT_SCHED_FAT(buf, sectorIndex);	// deleted by mingxuan 2020-10-27
 	RD_SECT_SCHED_FAT(fat32_dev, buf, sectorIndex);	// modified by mingxuan 2020-10-27
@@ -47,7 +47,7 @@ void WriteSector(BYTE* buf,DWORD sectorIndex)
 	{
 		memcpy(FATBuf,buf,512);//写FAT表的缓冲区，保持数据同步
 	}
-	int fat32_dev = get_fs_dev(PRIMARY_MASTER, FAT32_TYPE);	//added by mingxuan 2020-10-27
+	int fat32_dev = get_fs_dev(FAT_DRV, FAT32_TYPE);	//added by mingxuan 2020-10-27
 	
     //WR_SECT_SCHED_FAT(buf, sectorIndex);	// deleted by mingxuan 2020-10-27
 	WR_SECT_SCHED_FAT(fat32_dev, buf, sectorIndex);	// modified by mingxuan 2020-10-27

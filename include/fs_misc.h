@@ -161,8 +161,9 @@ struct file_desc {
 // 	int 	flag;	//用于标志描述符是否被使用
 // 	int 	dev_index;
 // };
-
-
+int ram_rdwt(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf);
+int rw_sector(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf);
+int rw_sector_sched(int io_type, int dev, int pos, int bytes, int proc_nr, void* buf);
 /**
  * Since all invocations of `rw_sector()' in FS look similar (most of the
  * params are the same), we use this macro to make code more readable.
@@ -182,7 +183,7 @@ struct file_desc {
 				       fsbuf);
 
 //modified by mingxuan 2020-10-27
-#define RD_SECT_FAT(dev, buf, sect_nr) rw_sector_fat(DEV_READ, \
+#define RD_SECT_FAT(dev, buf, sect_nr) rw_sector(DEV_READ, \
 				       dev,				\
 				       (sect_nr) * SECTOR_SIZE,		\
 				       SECTOR_SIZE, /* read one sector */ \
@@ -190,7 +191,7 @@ struct file_desc {
 				       buf);
 
 //modified by mingxuan 2020-10-27
-#define WR_SECT_FAT(dev, buf, sect_nr) rw_sector_fat(DEV_WRITE, \
+#define WR_SECT_FAT(dev, buf, sect_nr) rw_sector(DEV_WRITE, \
 				       dev,				\
 				       (sect_nr) * SECTOR_SIZE,		\
 				       SECTOR_SIZE, /* write one sector */ \
@@ -213,7 +214,7 @@ struct file_desc {
 				       fsbuf);
 
 //modified by mingxuan 2020-10-27
-#define RD_SECT_SCHED_FAT(dev, buf, sect_nr) rw_sector_sched_fat(DEV_READ, \
+#define RD_SECT_SCHED_FAT(dev, buf, sect_nr) rw_sector_sched(DEV_READ, \
 				       dev,				\
 				       (sect_nr) * SECTOR_SIZE,		\
 				       SECTOR_SIZE, /* read one sector */ \
@@ -221,7 +222,7 @@ struct file_desc {
 				       buf);
 
 //modified by mingxuan 2020-10-27
-#define WR_SECT_SCHED_FAT(dev, buf, sect_nr) rw_sector_sched_fat(DEV_WRITE, \
+#define WR_SECT_SCHED_FAT(dev, buf, sect_nr) rw_sector_sched(DEV_WRITE, \
 				       dev,				\
 				       (sect_nr) * SECTOR_SIZE,		\
 				       SECTOR_SIZE, /* write one sector */ \

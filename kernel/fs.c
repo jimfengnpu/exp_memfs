@@ -46,8 +46,8 @@ int real_write(int fd, const void *buf, int count); //注意:buf的类型被修�
 int real_unlink(const char *pathname);	//modified by mingxuan 2019-5-17
 int real_lseek(int fd, int offset, int whence);	  //modified by mingxuan 2019-5-17
 
-static int rw_sector(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf);
-static int rw_sector_sched(int io_type, int dev, int pos, int bytes, int proc_nr, void* buf);
+int rw_sector(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf);
+int rw_sector_sched(int io_type, int dev, int pos, int bytes, int proc_nr, void* buf);
 
 static int strip_path(char * filename, const char * pathname, struct inode** ppinode);
 static int search_file(char *path);
@@ -74,14 +74,14 @@ int get_fs_dev(int drive, int fs_type)
 	for(i=0; i < NR_PRIM_PER_DRIVE; i++)
 	{
 		if(hd_info[drive].primary[i].fs_type == fs_type)
-		return ((DEV_HD << MAJOR_SHIFT) | i);
+		return ((DEV_HD << MAJOR_SHIFT) | (i + drive * NR_PRIM_PER_DRIVE));
 	}
 
 	//added by mingxuan 2020-10-29
 	for(i=0; i < NR_SUB_PER_DRIVE; i++)
 	{
 		if(hd_info[drive].logical[i].fs_type == fs_type)
-		return ((DEV_HD << MAJOR_SHIFT) | (i + MINOR_hd1a)); // logic的下标i加上hd1a才是该逻辑分区的次设备号
+		return ((DEV_HD << MAJOR_SHIFT) | (i + MINOR_hd1a + drive * NR_SUB_PER_DRIVE)); // logic的下标i加上hd1a才是该逻辑分区的次设备号
 	}
 	return 0;
 }
@@ -328,8 +328,11 @@ static void mkfs()
  * @return Zero if success.
  *****************************************************************************/
 /// zcr: change the "u64 pos" to "int pos"
-static int rw_sector(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf)
+int rw_sector(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf)
 {
+	if(DRV_OF_DEV(MINOR(dev)) == RAMDISK_DRV) {
+		return ram_rdwt(io_type, dev, pos, bytes, proc_nr, buf);
+	}
 	MESSAGE driver_msg;
 	
 	driver_msg.type		= io_type;
@@ -344,8 +347,11 @@ static int rw_sector(int io_type, int dev, u64 pos, int bytes, int proc_nr, void
 }
 
 //added by xw, 18/8/27
-static int rw_sector_sched(int io_type, int dev, int pos, int bytes, int proc_nr, void* buf)
+int rw_sector_sched(int io_type, int dev, int pos, int bytes, int proc_nr, void* buf)
 {
+	if(DRV_OF_DEV(MINOR(dev)) == RAMDISK_DRV) {
+		return ram_rdwt(io_type, dev, pos, bytes, proc_nr, buf);
+	}
 	MESSAGE driver_msg;
 	
 	driver_msg.type		= io_type;
