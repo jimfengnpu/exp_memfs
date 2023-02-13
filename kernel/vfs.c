@@ -644,7 +644,8 @@ int do_vchdir(const char *dirname)
 		if(fd < 0) {
 			return -1;
 		}
-		vfs_table[index].op->close(fd);
+		if(index == VFS_INDEX_RAMFS)
+			vfs_table[index].op->close(fd);
 	}
 	strcpy(p_proc_current->task.cwd, new_cwd);
 	return 0;
