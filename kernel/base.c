@@ -587,8 +587,8 @@ void CreateRecord(PCHAR filename,BYTE type,DWORD startCluster,DWORD size,PRecord
 
 STATE WriteRecord(Record record,DWORD sectorIndex,DWORD off_in_sector)
 {
+	// 每次写一条记录，都是更新整个Sector
 	BYTE *buf=NULL;
-
 	buf = (PBYTE)K_PHY2LIN(sys_kmalloc(Bytes_Per_Sector*sizeof(BYTE)));
 	ReadSector(buf,sectorIndex);
 	memcpy(buf+off_in_sector,&record,sizeof(Record));

@@ -108,6 +108,58 @@ static void untar(const char * filename)
 	printf(" done, %d files extracted]\n", i);
 }
 
+// 对ramdisk的单元测试
+void mod_test_RWSector() {
+	BYTE buf[512];
+	for(int i = 0;i < 1000;i++) buf[i] = (i%26)+'a';
+	WriteSector(buf, 28);
+	BYTE checkbuf[512];
+	ReadSector(checkbuf, 28);
+	for(int i = 0;i < 512;i++) 
+		if(buf[i] != checkbuf[i]) {
+			printf("mod_test_RWSector failed at %d\n", i);
+			return;
+		}
+	printf("mod_test_RWSector passed\n");
+}
+
+
+void fat_on_ram_easy_test() {
+	int fd = do_vopen("/fat0/test.txt", O_CREAT | O_RDWR);
+	char buf[1100];
+	// lseek(fd, 0, SEEK_SET);
+	do_vwrite(fd, "hello world", 11);
+	do_vclose(fd);
+	fd = do_vopen("/fat0/test.txt", O_RDWR);
+	do_vread(fd, buf, 11);
+	buf[11] = '\0';
+	printf("read from fat0/test: %s\n", buf);
+	do_vclose(fd);
+	if(strcmp(buf, "hello world") == 0) {
+		printf("fat_on_ram_easy_test passed\n");
+	} else {
+		printf("fat_on_ram_easy_test failed\n");
+		while (1);
+	}
+}
+
+void orange_on_ram_easy_test() {
+	int fd = do_vopen("/orange/test.txt", O_CREAT | O_RDWR);
+	char buf[1100];
+	do_vlseek(fd, 0, SEEK_SET);
+	do_vwrite(fd, "hello world", 11);
+	do_vclose(fd);
+	fd = do_vopen("/orange/test.txt", O_RDWR);
+	do_vread(fd, buf, 11);
+	printf("read from orange/test: %s\n", buf);
+	do_vclose(fd);
+	if(strcmp(buf, "hello world") == 0) {
+		printf("orange_on_ram_easy_test passed\n");
+	} else {
+		printf("orange_on_ram_easy_test failed\n");
+		while (1);
+	}
+}
 
 void initial()
 {
@@ -125,9 +177,15 @@ void initial()
 	strcat(full_name,INSTALL_FILENAME);
 	untar(full_name);
 
+	fat_on_ram_easy_test();
+	orange_on_ram_easy_test();
+	// while(1);
+
 	do_vclose(stdin);
 	do_vclose(stdout);
 	do_vclose(stderr);
+
+	// mod_test_RWSector();
 
 	int pid = fork();
 	if(!pid) {
@@ -139,4 +197,6 @@ void initial()
 			wait(&st);
 		}
 	}
+
+
 }
