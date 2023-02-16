@@ -15,7 +15,7 @@
 char cmd_buf[MAX_CMD_LEN];
 #define TMP_BUF_LEN 600
 char tmp[TMP_BUF_LEN];
-#define DATA_BUF_LEN 2500005
+#define DATA_BUF_LEN 2505
 char data_buf[DATA_BUF_LEN];
 
 int check_num = 0; // 每做一次check_expr，check_num就加1，以便快速定位错误
@@ -230,359 +230,359 @@ int cmd_parser() {
 	return -CMD_NOFOUND;
 }
 
-void fake_shell() {
-	while (1)
-	{
-		memset(cmd_buf, 0, MAX_CMD_LEN);
-		get_cwd(tmp);
-		printf("\nminiOS:%s $ ",tmp);
-		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
-		{
-			cmd_parser();
-		}
-	}
-}
+// void fake_shell() {
+// 	while (1)
+// 	{
+// 		memset(cmd_buf, 0, MAX_CMD_LEN);
+// 		get_cwd(tmp);
+// 		printf("\nminiOS:%s $ ",tmp);
+// 		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
+// 		{
+// 			cmd_parser();
+// 		}
+// 	}
+// }
 
-int cmd_dostr(char *str) {
-	strcpy(cmd_buf, str);
-	printf("command : %s\n", cmd_buf);
-	return cmd_parser();
-}
+// int cmd_dostr(char *str) {
+// 	strcpy(cmd_buf, str);
+// 	printf("command : %s\n", cmd_buf);
+// 	return cmd_parser();
+// }
 
-// 进行基本的功能测试
-int easytest() {
-	check_expr(cmd_dostr("cd qweqw") < 0); // 测试用户输入的目录不存在
-	check_expr(cmd_dostr("cd ram") >= 0);
-	check_expr(cmd_dostr("touch a") >= 0);
-	check_expr(cmd_dostr("write a hello world") == strlen("hello world"));
-	check_expr(cmd_dostr("cat a") >= 0);
-	check_expr(cmd_dostr("write a change") == strlen("change"));
-	check_expr(cmd_dostr("cat a") >= 0);
-	check_expr(cmd_dostr("cd /ram") >= 0);
-	check_expr(cmd_dostr("mkdir b") >= 0);
-	check_expr(cmd_dostr("mkdir c") >= 0);
-	check_expr(cmd_dostr("cd b") >= 0);
-	check_expr(cmd_dostr("cd /ram/d") < 0); 	// 检查访问不存在的目录
-	check_expr(cmd_dostr("cd /ram") >= 0);
-	// 删除文件夹
-	check_expr(cmd_dostr("rm /ram/a") >= 0);
-	check_expr(cmd_dostr("rmdir /ram/b") >= 0);
-	check_expr(cmd_dostr("rmdir /ram/c") >= 0);
-	printf("easy_test pass!!!\n");
-	return 0;
-}
+// // 进行基本的功能测试
+// int easytest() {
+// 	check_expr(cmd_dostr("cd qweqw") < 0); // 测试用户输入的目录不存在
+// 	check_expr(cmd_dostr("cd ram") >= 0);
+// 	check_expr(cmd_dostr("touch a") >= 0);
+// 	check_expr(cmd_dostr("write a hello world") == strlen("hello world"));
+// 	check_expr(cmd_dostr("cat a") >= 0);
+// 	check_expr(cmd_dostr("write a change") == strlen("change"));
+// 	check_expr(cmd_dostr("cat a") >= 0);
+// 	check_expr(cmd_dostr("cd /ram") >= 0);
+// 	check_expr(cmd_dostr("mkdir b") >= 0);
+// 	check_expr(cmd_dostr("mkdir c") >= 0);
+// 	check_expr(cmd_dostr("cd b") >= 0);
+// 	check_expr(cmd_dostr("cd /ram/d") < 0); 	// 检查访问不存在的目录
+// 	check_expr(cmd_dostr("cd /ram") >= 0);
+// 	// 删除文件夹
+// 	check_expr(cmd_dostr("rm /ram/a") >= 0);
+// 	check_expr(cmd_dostr("rmdir /ram/b") >= 0);
+// 	check_expr(cmd_dostr("rmdir /ram/c") >= 0);
+// 	printf("easy_test pass!!!\n");
+// 	return 0;
+// }
 
-// 针对vfs各种API的返回值情况进行测试，包括各种错误处理。
-int ret_value_test() {
-	// todo: 待整理完各个API文档后编写
-	return 0;
-}
+// // 针对vfs各种API的返回值情况进行测试，包括各种错误处理。
+// int ret_value_test() {
+// 	// todo: 待整理完各个API文档后编写
+// 	return 0;
+// }
 
-// 向ram/all_a写入2e6个字符'a'后，随机读取文件，进行检测。
-int all_a_test() {
-	for(int i = 0;i < 2e6;i++) data_buf[i] = 'a';
-	data_buf[2000000] = '\0';
-	check_expr(chdir("/ram") >= 0); // 切换到ram目录
-	int fd = -1;
-	fd = open("all_a", O_CREAT | O_RDWR);
-	check_expr(fd >= 0); // 创建文件
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-	check_expr(write(fd, data_buf, strlen(data_buf)) == 2000000); // 写入2e6个字符'a'
-	check_expr(close(fd) >= 0); // 关闭文件
-	fd = open("all_a", O_RDWR);
-	check_expr(fd >= 0); // 重新打开文件
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-	int ret;
-	for(int i = 0;i < 100;i++) {
-		ret = read(fd, data_buf, 1);
-		check_expr(ret == 1); // 读取一个字符
-		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
-	}
-	check_expr(lseek(fd, 114514, SEEK_SET) >= 0);
-	for(int i = 0;i < 100;i++) {
-		ret = read(fd, data_buf, 1);
-		check_expr(ret == 1); // 读取一个字符
-		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
-	}
-	check_expr(lseek(fd, -1000, SEEK_END) >= 0);
-	for(int i = 0;i < 100;i++) {
-		ret = read(fd, data_buf, 1);
-		check_expr(ret == 1); // 读取一个字符
-		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
-	}
-	check_expr(delete("all_a") >= 0); // 删除文件
-	printf("all_a_test pass!!!\n");
-	return 0;
-}
+// // 向ram/all_a写入2e6个字符'a'后，随机读取文件，进行检测。
+// int all_a_test() {
+// 	for(int i = 0;i < 2e6;i++) data_buf[i] = 'a';
+// 	data_buf[2000000] = '\0';
+// 	check_expr(chdir("/ram") >= 0); // 切换到ram目录
+// 	int fd = -1;
+// 	fd = open("all_a", O_CREAT | O_RDWR);
+// 	check_expr(fd >= 0); // 创建文件
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+// 	check_expr(write(fd, data_buf, strlen(data_buf)) == 2000000); // 写入2e6个字符'a'
+// 	check_expr(close(fd) >= 0); // 关闭文件
+// 	fd = open("all_a", O_RDWR);
+// 	check_expr(fd >= 0); // 重新打开文件
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+// 	int ret;
+// 	for(int i = 0;i < 100;i++) {
+// 		ret = read(fd, data_buf, 1);
+// 		check_expr(ret == 1); // 读取一个字符
+// 		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
+// 	}
+// 	check_expr(lseek(fd, 114514, SEEK_SET) >= 0);
+// 	for(int i = 0;i < 100;i++) {
+// 		ret = read(fd, data_buf, 1);
+// 		check_expr(ret == 1); // 读取一个字符
+// 		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
+// 	}
+// 	check_expr(lseek(fd, -1000, SEEK_END) >= 0);
+// 	for(int i = 0;i < 100;i++) {
+// 		ret = read(fd, data_buf, 1);
+// 		check_expr(ret == 1); // 读取一个字符
+// 		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
+// 	}
+// 	check_expr(delete("all_a") >= 0); // 删除文件
+// 	printf("all_a_test pass!!!\n");
+// 	return 0;
+// }
 
-int check_alphabet(int fd, int *ret, int *cur_pos) {
-	for(int i = 0;i < 100;i++) {
-		*ret = read(fd, data_buf, 1);
-		if(*ret != 1 || data_buf[0] != 'a'+((*cur_pos)%26))
-			return 0;
-		(*cur_pos)++;
-	}
-	return 1;
-}
-/*
- *向ram/alphabet_copy文件写入字母表，并读取。
- *检查方法：根据下表位置取模得到应为何字符，并对比。
-**/
-int alphabet_copy_test() {
-	check_expr(chdir("/ram") >= 0); // 切换到ram目录
-	int fd = -1;
-	int tot_len = 2e6;
-	fd = open("alphabet_copy", O_CREAT | O_RDWR);
-	check_expr(fd >= 0); // 创建文件
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-	for(int i = 0;i < tot_len;i++) {
-		data_buf[i] = 'a' + (i%26);
-	}
-	data_buf[tot_len] = '\0';
-	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
-	check_expr(close(fd) >= 0); // 关闭文件
-	fd = open("alphabet_copy", O_RDWR);
-	check_expr(fd >= 0); // 重新打开文件
-	int check_state = 0, cur_pos = 0, ret = -1;
-// 将文件指针移动到文件开头
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0); 
-	cur_pos = 0;
-	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
-// 将文件指针移动到文件中间
-	check_expr(lseek(fd, 121323, SEEK_SET) >= 0);
-	cur_pos = 121323;
-	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
-// 将文件指针移动到文件末尾
-	check_expr(lseek(fd, -1000, SEEK_END) >= 0);
-	cur_pos = tot_len - 1000;
-	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
-	check_expr(close(fd) >= 0); // 关闭文件
-	check_expr(delete("alphabet_copy") >= 0); // 删除文件
-	printf("alphabet_copy_test pass!!!\n");
-	return 0;
-}
+// int check_alphabet(int fd, int *ret, int *cur_pos) {
+// 	for(int i = 0;i < 100;i++) {
+// 		*ret = read(fd, data_buf, 1);
+// 		if(*ret != 1 || data_buf[0] != 'a'+((*cur_pos)%26))
+// 			return 0;
+// 		(*cur_pos)++;
+// 	}
+// 	return 1;
+// }
+// /*
+//  *向ram/alphabet_copy文件写入字母表，并读取。
+//  *检查方法：根据下表位置取模得到应为何字符，并对比。
+// **/
+// int alphabet_copy_test() {
+// 	check_expr(chdir("/ram") >= 0); // 切换到ram目录
+// 	int fd = -1;
+// 	int tot_len = 2e6;
+// 	fd = open("alphabet_copy", O_CREAT | O_RDWR);
+// 	check_expr(fd >= 0); // 创建文件
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+// 	for(int i = 0;i < tot_len;i++) {
+// 		data_buf[i] = 'a' + (i%26);
+// 	}
+// 	data_buf[tot_len] = '\0';
+// 	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
+// 	check_expr(close(fd) >= 0); // 关闭文件
+// 	fd = open("alphabet_copy", O_RDWR);
+// 	check_expr(fd >= 0); // 重新打开文件
+// 	int check_state = 0, cur_pos = 0, ret = -1;
+// // 将文件指针移动到文件开头
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); 
+// 	cur_pos = 0;
+// 	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
+// // 将文件指针移动到文件中间
+// 	check_expr(lseek(fd, 121323, SEEK_SET) >= 0);
+// 	cur_pos = 121323;
+// 	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
+// // 将文件指针移动到文件末尾
+// 	check_expr(lseek(fd, -1000, SEEK_END) >= 0);
+// 	cur_pos = tot_len - 1000;
+// 	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
+// 	check_expr(close(fd) >= 0); // 关闭文件
+// 	check_expr(delete("alphabet_copy") >= 0); // 删除文件
+// 	printf("alphabet_copy_test pass!!!\n");
+// 	return 0;
+// }
 
-int test_write_times(char *filename, int tot_len) {
-	int start_ticks = get_ticks();
-	int fd = open(filename, O_CREAT | O_RDWR);
-	check_expr(fd >= 0); // 创建文件
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
-	check_expr(close(fd) >= 0); // 关闭文件
-	int end_ticks = get_ticks();
-	close(fd);
-	return end_ticks - start_ticks;
-}
-int test_read_times(char *filename, int tot_len) {
-	int start_ticks = get_ticks();
-	int fd = open(filename, O_RDWR);
-	check_expr(fd >= 0);
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0);
-	check_expr(read(fd, data_buf, tot_len) == tot_len);
-	check_expr(close(fd) >= 0);
-	int end_ticks = get_ticks();
-	close(fd);
-	delete(filename);
-	return end_ticks - start_ticks;
-}
-/*
- * 分别测试在ramfs和在orangefs上，写2e6 bytes的用时和读2e6 bytes的用时
-**/
-int rw_cmp_test() {
-	// 准备数据
-	int tot_len = 2e6;
-	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
-	data_buf[tot_len] = '\0';
-	int ram_w_2e6 = test_write_times("/ram/rw_cmp", tot_len), ram_r_2e6 = test_read_times("/ram/rw_cmp", tot_len);
-	int orange_w_2e6 = test_write_times("/orange/rw_cmp", tot_len), orange_r_2e6 = test_read_times("/orange/rw_cmp", tot_len);
-	printf("ramfs write 2e6 bytes: %d ticks\n", ram_w_2e6);
-	printf("ramfs read 2e6 bytes: %d ticks\n", ram_r_2e6);
-	printf("orangefs write 2e6 bytes: %d ticks\n", orange_w_2e6);
-	printf("orangefs read 2e6 bytes: %d ticks\n", orange_r_2e6);
-	printf("rw_cmp_test pass!!!\n");
-	return 0;
-}
+// int test_write_times(char *filename, int tot_len) {
+// 	int start_ticks = get_ticks();
+// 	int fd = open(filename, O_CREAT | O_RDWR);
+// 	check_expr(fd >= 0); // 创建文件
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+// 	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
+// 	check_expr(close(fd) >= 0); // 关闭文件
+// 	int end_ticks = get_ticks();
+// 	close(fd);
+// 	return end_ticks - start_ticks;
+// }
+// int test_read_times(char *filename, int tot_len) {
+// 	int start_ticks = get_ticks();
+// 	int fd = open(filename, O_RDWR);
+// 	check_expr(fd >= 0);
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0);
+// 	check_expr(read(fd, data_buf, tot_len) == tot_len);
+// 	check_expr(close(fd) >= 0);
+// 	int end_ticks = get_ticks();
+// 	close(fd);
+// 	delete(filename);
+// 	return end_ticks - start_ticks;
+// }
+// /*
+//  * 分别测试在ramfs和在orangefs上，写2e6 bytes的用时和读2e6 bytes的用时
+// **/
+// int rw_cmp_test() {
+// 	// 准备数据
+// 	int tot_len = 2e6;
+// 	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
+// 	data_buf[tot_len] = '\0';
+// 	int ram_w_2e6 = test_write_times("/ram/rw_cmp", tot_len), ram_r_2e6 = test_read_times("/ram/rw_cmp", tot_len);
+// 	int orange_w_2e6 = test_write_times("/orange/rw_cmp", tot_len), orange_r_2e6 = test_read_times("/orange/rw_cmp", tot_len);
+// 	printf("ramfs write 2e6 bytes: %d ticks\n", ram_w_2e6);
+// 	printf("ramfs read 2e6 bytes: %d ticks\n", ram_r_2e6);
+// 	printf("orangefs write 2e6 bytes: %d ticks\n", orange_w_2e6);
+// 	printf("orangefs read 2e6 bytes: %d ticks\n", orange_r_2e6);
+// 	printf("rw_cmp_test pass!!!\n");
+// 	return 0;
+// }
 
-// 将ram文件夹中的文件拷贝到orange中。
-int ramfs2orange_test() {
-	// 准备数据
-	int tot_len = 2e6;
-	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
-	data_buf[tot_len] = '\0';
-	int fd = open("/ram/r2o", O_CREAT | O_RDWR);
-	check_expr(fd >= 0); // 创建文件
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
-	check_expr(close(fd) >= 0); // 关闭文件
-	int ramfd = open("/ram/r2o", O_RDWR);
-	int orangefd = open("/orange/r2o", O_CREAT | O_RDWR);
-	check_expr(ramfd >= 0);
-	check_expr(orangefd >= 0);
-	check_expr(lseek(ramfd, 0, SEEK_SET) >= 0);
-	check_expr(lseek(orangefd, 0, SEEK_SET) >= 0);
-	int ret = -1;
-	ret = read(ramfd, data_buf, tot_len);
-	check_expr(ret == tot_len);
-	ret = write(orangefd, data_buf, tot_len);
-	check_expr(ret == tot_len);
-	check_expr(close(ramfd) >= 0);
-	check_expr(close(orangefd) >= 0);
-	// 检查文件内容是否一致
-	ramfd = open("/ram/r2o", O_RDWR);
-	orangefd = open("/orange/r2o", O_RDWR);
-	check_expr(ramfd >= 0);
-	check_expr(orangefd >= 0);
-	check_expr(lseek(ramfd, 191020, SEEK_SET) >= 0);
-	check_expr(lseek(orangefd, 191020, SEEK_SET) >= 0);
-	int sample_len = 100; // 取样长度
-	char sample_buf[105];
-	ret = read(ramfd, data_buf, sample_len);
-	check_expr(ret == sample_len);
-	ret = read(orangefd, sample_buf, sample_len);
-	int is_ok = 1;
-	for(int i = 0;i < sample_len;i++) {
-		if(data_buf[i] != sample_buf[i]) {
-			is_ok = 0;
-			break;
-		}
-	}
-	check_expr(is_ok);
-	check_expr(close(ramfd) >= 0);
-	check_expr(close(orangefd) >= 0);
-	check_expr(delete("/ram/r2o") >= 0);
-	check_expr(delete("/orange/r2o") >= 0);
-	printf("ramfs2orange_test pass!!!\n");
-	return 0;
-}
+// // 将ram文件夹中的文件拷贝到orange中。
+// int ramfs2orange_test() {
+// 	// 准备数据
+// 	int tot_len = 2e6;
+// 	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
+// 	data_buf[tot_len] = '\0';
+// 	int fd = open("/ram/r2o", O_CREAT | O_RDWR);
+// 	check_expr(fd >= 0); // 创建文件
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+// 	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
+// 	check_expr(close(fd) >= 0); // 关闭文件
+// 	int ramfd = open("/ram/r2o", O_RDWR);
+// 	int orangefd = open("/orange/r2o", O_CREAT | O_RDWR);
+// 	check_expr(ramfd >= 0);
+// 	check_expr(orangefd >= 0);
+// 	check_expr(lseek(ramfd, 0, SEEK_SET) >= 0);
+// 	check_expr(lseek(orangefd, 0, SEEK_SET) >= 0);
+// 	int ret = -1;
+// 	ret = read(ramfd, data_buf, tot_len);
+// 	check_expr(ret == tot_len);
+// 	ret = write(orangefd, data_buf, tot_len);
+// 	check_expr(ret == tot_len);
+// 	check_expr(close(ramfd) >= 0);
+// 	check_expr(close(orangefd) >= 0);
+// 	// 检查文件内容是否一致
+// 	ramfd = open("/ram/r2o", O_RDWR);
+// 	orangefd = open("/orange/r2o", O_RDWR);
+// 	check_expr(ramfd >= 0);
+// 	check_expr(orangefd >= 0);
+// 	check_expr(lseek(ramfd, 191020, SEEK_SET) >= 0);
+// 	check_expr(lseek(orangefd, 191020, SEEK_SET) >= 0);
+// 	int sample_len = 100; // 取样长度
+// 	char sample_buf[105];
+// 	ret = read(ramfd, data_buf, sample_len);
+// 	check_expr(ret == sample_len);
+// 	ret = read(orangefd, sample_buf, sample_len);
+// 	int is_ok = 1;
+// 	for(int i = 0;i < sample_len;i++) {
+// 		if(data_buf[i] != sample_buf[i]) {
+// 			is_ok = 0;
+// 			break;
+// 		}
+// 	}
+// 	check_expr(is_ok);
+// 	check_expr(close(ramfd) >= 0);
+// 	check_expr(close(orangefd) >= 0);
+// 	check_expr(delete("/ram/r2o") >= 0);
+// 	check_expr(delete("/orange/r2o") >= 0);
+// 	printf("ramfs2orange_test pass!!!\n");
+// 	return 0;
+// }
 
-// 将orange文件夹中的文件拷贝到ram中。
-int orange2ramfs_test() {
-	// 准备数据
-	int tot_len = 2e6;
-	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
-	data_buf[tot_len] = '\0';
-	int fd = open("/orange/o2r", O_CREAT | O_RDWR);
-	check_expr(fd >= 0); // 创建文件
-	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
-	check_expr(close(fd) >= 0); // 关闭文件
-	int ramfd = open("/ram/o2r", O_CREAT | O_RDWR);
-	int orangefd = open("/orange/o2r", O_RDWR);
-	check_expr(ramfd >= 0); check_expr(orangefd >= 0);
-	check_expr(lseek(ramfd, 0, SEEK_SET) >= 0);
-	check_expr(lseek(orangefd, 0, SEEK_SET) >= 0);
-	int ret = -1;
-	ret = read(orangefd, data_buf, tot_len);
-	check_expr(ret == tot_len);
-	ret = write(ramfd, data_buf, tot_len);
-	check_expr(ret == tot_len);
-	check_expr(close(ramfd) >= 0);
-	check_expr(close(orangefd) >= 0);
-	// 检查文件内容是否一致
-	ramfd = open("/ram/o2r", O_RDWR);
-	orangefd = open("/orange/o2r", O_RDWR);
-	check_expr(ramfd >= 0);
-	check_expr(orangefd >= 0);
-	check_expr(lseek(ramfd, 0, SEEK_SET) >= 0);
-	check_expr(lseek(orangefd, 0, SEEK_SET) >= 0);
-	int sample_len = 100; // 取样长度
-	char sample_buf[105];
-	ret = read(ramfd, data_buf, sample_len);
-	check_expr(ret == sample_len);
-	ret = read(orangefd, sample_buf, sample_len);
-	int is_ok = 1;
-	for(int i = 0;i < sample_len;i++) {
-		if(data_buf[i] != sample_buf[i]) {
-			is_ok = 0;
-			break;
-		}
-	}
-	check_expr(is_ok);
-	check_expr(close(ramfd) >= 0);
-	check_expr(close(orangefd) >= 0);
-	check_expr(delete("/ram/o2r") >= 0);
-	check_expr(delete("/orange/o2r") >= 0);
-	printf("orange2ramfs_test pass!!!\n");
-	return 0;
-}
+// // 将orange文件夹中的文件拷贝到ram中。
+// int orange2ramfs_test() {
+// 	// 准备数据
+// 	int tot_len = 2e6;
+// 	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
+// 	data_buf[tot_len] = '\0';
+// 	int fd = open("/orange/o2r", O_CREAT | O_RDWR);
+// 	check_expr(fd >= 0); // 创建文件
+// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+// 	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
+// 	check_expr(close(fd) >= 0); // 关闭文件
+// 	int ramfd = open("/ram/o2r", O_CREAT | O_RDWR);
+// 	int orangefd = open("/orange/o2r", O_RDWR);
+// 	check_expr(ramfd >= 0); check_expr(orangefd >= 0);
+// 	check_expr(lseek(ramfd, 0, SEEK_SET) >= 0);
+// 	check_expr(lseek(orangefd, 0, SEEK_SET) >= 0);
+// 	int ret = -1;
+// 	ret = read(orangefd, data_buf, tot_len);
+// 	check_expr(ret == tot_len);
+// 	ret = write(ramfd, data_buf, tot_len);
+// 	check_expr(ret == tot_len);
+// 	check_expr(close(ramfd) >= 0);
+// 	check_expr(close(orangefd) >= 0);
+// 	// 检查文件内容是否一致
+// 	ramfd = open("/ram/o2r", O_RDWR);
+// 	orangefd = open("/orange/o2r", O_RDWR);
+// 	check_expr(ramfd >= 0);
+// 	check_expr(orangefd >= 0);
+// 	check_expr(lseek(ramfd, 0, SEEK_SET) >= 0);
+// 	check_expr(lseek(orangefd, 0, SEEK_SET) >= 0);
+// 	int sample_len = 100; // 取样长度
+// 	char sample_buf[105];
+// 	ret = read(ramfd, data_buf, sample_len);
+// 	check_expr(ret == sample_len);
+// 	ret = read(orangefd, sample_buf, sample_len);
+// 	int is_ok = 1;
+// 	for(int i = 0;i < sample_len;i++) {
+// 		if(data_buf[i] != sample_buf[i]) {
+// 			is_ok = 0;
+// 			break;
+// 		}
+// 	}
+// 	check_expr(is_ok);
+// 	check_expr(close(ramfd) >= 0);
+// 	check_expr(close(orangefd) >= 0);
+// 	check_expr(delete("/ram/o2r") >= 0);
+// 	check_expr(delete("/orange/o2r") >= 0);
+// 	printf("orange2ramfs_test pass!!!\n");
+// 	return 0;
+// }
 
-// 高压力读写测试
-void high_rw_test() {
-	// 全部写入字符'a'
-	for(int i = 0;i < 2e6;i++) data_buf[i] = 'a';
-	data_buf[2000000] = '\0';
-	int start_ticks = get_ticks();
-	cmd_dostr("mkdir ram");
-	cmd_dostr("cd ram");
-	printf("write 2e6 bytes to file \"ram/all_a\"\n");
-	int fd = open("all_a", O_CREAT | O_RDWR);
-	lseek(fd, 0, SEEK_SET);
-	int ret = -1;
-	if((ret = write(fd, data_buf, strlen(data_buf))) != 2000000) {
-		printf("write failed\n");
-	} else {
-		printf("successfully written\n");
-	}
-	// 随机读测试
-	lseek(fd, 0, SEEK_SET);
-	// 读入1000个bytes检查
-	char tmp[10];
-	int cnt = 0;
-	while(read(fd, tmp, 1) == 1 && cnt != 1000) {
-		cnt++;
-		if(tmp[0] != 'a') {
-			printf("find a read problem in 'all_a' test\n");
-			return;
-		}
-	}
-	if(cnt != 1000) {
-		printf("test error\n");
-		return;
-	}
-	printf("\"Read 1000 bytes from head\" test is passed\n");
-	lseek(fd, 114514, SEEK_CUR); // 随机读取测试
-	cnt = 0;
-	while(read(fd, tmp, 1) == 1 && cnt != 1000) {
-		cnt++;
-		if(tmp[0] != 'a') {
-			printf("find a read problem in 'all_a' test\n");
-			return;
-		}
-	}
-	if(cnt != 1000) {
-		printf("test error\n");
-		return;
-	}
-	printf("\"Randomly read 1000 bytes from head\" test is passed\n");
-	lseek(fd, -5000, SEEK_END);
-	cnt = 0;
-	while(read(fd, tmp, 1) == 1 && cnt != 1000) {
-		cnt++;
-		if(tmp[0] != 'a') {
-			printf("find a read problem in 'all_a' test\n");
-			return;
-		}
-	}
-	if(cnt != 1000) {
-		printf("test error\n");
-	}
-	printf("\"READ 1000 bytes from end\" test is passed\n");
-	int end_ticks = get_ticks();
-	close(fd);
-	printf("all_a test is passed\n");
-	printf("This test use %d ticks\n", end_ticks-start_ticks);
-	cmd_dostr("cd /");
-	// fd = open("orange/test", O_CREAT | O_RDWR);
-	// lseek(fd, 0, SEEK_SET);
-	// start_ticks = get_ticks();
-	// write(fd, data_buf, strlen(data_buf));
-	// end_ticks = get_ticks();
-	// printf("Write 2e6 bytes to hard disk: This test use %d ticks\n", end_ticks-start_ticks);
-	cmd_dostr("cd ram");
-	cmd_dostr("mkdir empty");
-	cmd_dostr("rmdir empty");
-	fake_shell();
-}
+// // 高压力读写测试
+// void high_rw_test() {
+// 	// 全部写入字符'a'
+// 	for(int i = 0;i < 2e6;i++) data_buf[i] = 'a';
+// 	data_buf[2000000] = '\0';
+// 	int start_ticks = get_ticks();
+// 	cmd_dostr("mkdir ram");
+// 	cmd_dostr("cd ram");
+// 	printf("write 2e6 bytes to file \"ram/all_a\"\n");
+// 	int fd = open("all_a", O_CREAT | O_RDWR);
+// 	lseek(fd, 0, SEEK_SET);
+// 	int ret = -1;
+// 	if((ret = write(fd, data_buf, strlen(data_buf))) != 2000000) {
+// 		printf("write failed\n");
+// 	} else {
+// 		printf("successfully written\n");
+// 	}
+// 	// 随机读测试
+// 	lseek(fd, 0, SEEK_SET);
+// 	// 读入1000个bytes检查
+// 	char tmp[10];
+// 	int cnt = 0;
+// 	while(read(fd, tmp, 1) == 1 && cnt != 1000) {
+// 		cnt++;
+// 		if(tmp[0] != 'a') {
+// 			printf("find a read problem in 'all_a' test\n");
+// 			return;
+// 		}
+// 	}
+// 	if(cnt != 1000) {
+// 		printf("test error\n");
+// 		return;
+// 	}
+// 	printf("\"Read 1000 bytes from head\" test is passed\n");
+// 	lseek(fd, 114514, SEEK_CUR); // 随机读取测试
+// 	cnt = 0;
+// 	while(read(fd, tmp, 1) == 1 && cnt != 1000) {
+// 		cnt++;
+// 		if(tmp[0] != 'a') {
+// 			printf("find a read problem in 'all_a' test\n");
+// 			return;
+// 		}
+// 	}
+// 	if(cnt != 1000) {
+// 		printf("test error\n");
+// 		return;
+// 	}
+// 	printf("\"Randomly read 1000 bytes from head\" test is passed\n");
+// 	lseek(fd, -5000, SEEK_END);
+// 	cnt = 0;
+// 	while(read(fd, tmp, 1) == 1 && cnt != 1000) {
+// 		cnt++;
+// 		if(tmp[0] != 'a') {
+// 			printf("find a read problem in 'all_a' test\n");
+// 			return;
+// 		}
+// 	}
+// 	if(cnt != 1000) {
+// 		printf("test error\n");
+// 	}
+// 	printf("\"READ 1000 bytes from end\" test is passed\n");
+// 	int end_ticks = get_ticks();
+// 	close(fd);
+// 	printf("all_a test is passed\n");
+// 	printf("This test use %d ticks\n", end_ticks-start_ticks);
+// 	cmd_dostr("cd /");
+// 	// fd = open("orange/test", O_CREAT | O_RDWR);
+// 	// lseek(fd, 0, SEEK_SET);
+// 	// start_ticks = get_ticks();
+// 	// write(fd, data_buf, strlen(data_buf));
+// 	// end_ticks = get_ticks();
+// 	// printf("Write 2e6 bytes to hard disk: This test use %d ticks\n", end_ticks-start_ticks);
+// 	cmd_dostr("cd ram");
+// 	cmd_dostr("mkdir empty");
+// 	cmd_dostr("rmdir empty");
+// 	fake_shell();
+// }
 
 int main(int argc, char *argv[])
 {

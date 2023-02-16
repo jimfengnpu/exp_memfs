@@ -92,7 +92,7 @@ int kernel_main()
 
 	//hd_open(MINOR(ROOT_DEV));
 	hd_open(PRIMARY_MASTER);	//modified by mingxuan 2020-10-27
-	ramdisk_init();
+	// ramdisk_init();
 
 	init_vfs();		//added by mingxuan 2020-10-30
 	init_fs();

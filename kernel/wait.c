@@ -6,21 +6,26 @@
 #include "proto.h"
 #include "memman.h"
 #include "errno.h"
+#include "x86.h"
+#include "assert.h"
+#include "string.h"
 // modified from ch6  by jianfeng 23/2/12
 static void free_mem_child(PROCESS_0 *p_child) {
 	u32 addr_lin;
 	//复制代码，代码是共享的，直接将物理地址挂载在子进程的页表上
 	//简单说明一下 如果子进程(待回收)的父进程不是亲父进程,那么一定是亲父进程先退出,初始进程回收退出后的子进程,此时可以释放代码页
-	if(p_child->info.ppid != p_child->info.real_ppid){
-		for(addr_lin = p_child->memmap.text_lin_base ; addr_lin < p_child->memmap.text_lin_limit ; addr_lin+=num_4K )
-		{
+	for(addr_lin = p_child->memmap.text_lin_base ; addr_lin < p_child->memmap.text_lin_limit ; addr_lin+=num_4K )
+	{
+		if(p_child->info.ppid != p_child->info.real_ppid){
 			// lin_mapping_phy(addr_lin,//线性地址
 			// 				get_page_phy_addr(ppid,addr_lin),//物理地址，为MAX_UNSIGNED_INT时，由该函数自动分配物理内存
 			// 				pid,//要挂载的进程的pid，子进程的pid
 			// 				PG_P  | PG_USU | PG_RWW,//页目录属性，一般都为可读写
 			// 				PG_P  | PG_USU | PG_RWR);//页表属性，代码是只读的
+			assert(phy_exist(p_child->cr3, addr_lin));
 			do_free_4k(get_page_phy_addr(p_child->pid, addr_lin));
 		}
+		lin_mapping_phy(addr_lin, 0, p_child->pid, PG_P  | PG_USU | PG_RWW,0);
 	}
 	//复制数据，数据不共享，子进程需要申请物理地址，并复制过来
 	for(addr_lin = p_child->memmap.data_lin_base ; addr_lin < p_child->memmap.data_lin_limit ; addr_lin+=num_4K )
@@ -33,7 +38,10 @@ static void free_mem_child(PROCESS_0 *p_child) {
 		// 				pid,//要挂载的进程的pid，子进程的pid
 		// 				PG_P  | PG_USU | PG_RWW,//页目录属性，一般都为可读写
 		// 				PG_P  | PG_USU | PG_RWW);//页表属性，数据是可读写的	
-		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin&0xFFFFF000));	
+		if(phy_exist(p_child->cr3, addr_lin)){
+		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin));	
+		lin_mapping_phy(addr_lin, 0, p_child->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
 	}
 	//复制保留内存，保留内存不共享，子进程需要申请物理地址，并复制过来
 	for(addr_lin = p_child->memmap.vpage_lin_base ; addr_lin < p_child->memmap.vpage_lin_limit ; addr_lin+=num_4K )
@@ -45,8 +53,10 @@ static void free_mem_child(PROCESS_0 *p_child) {
 		// 				get_page_phy_addr(ppid,SharePageBase),//物理地址，获取共享页的物理地址，填进子进程页表
 		// 				pid,//要挂载的进程的pid，子进程的pid
 		// 				PG_P  | PG_USU | PG_RWW,//页目录属性，一般都为可读写
-		// 				PG_P  | PG_USU | PG_RWW);//页表属性，保留内存是可读写的		
-		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin&0xFFFFF000));
+		// 				PG_P  | PG_USU | PG_RWW);//页表属性，保留内存是可读写的	
+		assert(phy_exist(p_child->cr3, addr_lin));	
+		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin));
+		lin_mapping_phy(addr_lin, 0, p_child->pid, PG_P  | PG_USU | PG_RWW,0);
 	}
 	
 	//复制堆，堆不共享，子进程需要申请物理地址，并复制过来
@@ -59,8 +69,10 @@ static void free_mem_child(PROCESS_0 *p_child) {
 		// 				get_page_phy_addr(ppid,SharePageBase),//物理地址，获取共享页的物理地址，填进子进程页表
 		// 				pid,//要挂载的进程的pid，子进程的pid
 		// 				PG_P  | PG_USU | PG_RWW,//页目录属性，一般都为可读写
-		// 				PG_P  | PG_USU | PG_RWW);//页表属性，堆是可读写的		
-		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin&0xFFFFF000));
+		// 				PG_P  | PG_USU | PG_RWW);//页表属性，堆是可读写的
+		assert(phy_exist(p_child->cr3, addr_lin));		
+		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin));
+		lin_mapping_phy(addr_lin, 0, p_child->pid, PG_P  | PG_USU | PG_RWW,0);
 	}	
 	
 	//复制栈，栈不共享，子进程需要申请物理地址，并复制过来(注意栈的复制方向)
@@ -74,7 +86,10 @@ static void free_mem_child(PROCESS_0 *p_child) {
 		// 				pid,//要挂载的进程的pid，子进程的pid
 		// 				PG_P  | PG_USU | PG_RWW,//页目录属性，一般都为可读写
 		// 				PG_P  | PG_USU | PG_RWW);//页表属性，栈是可读写的
-		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin&0xFFFFF000));		
+		if(phy_exist(p_child->cr3, addr_lin)){
+		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin));		
+		lin_mapping_phy(addr_lin, 0, p_child->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
 	}
 	
 	//复制参数区，参数区不共享，子进程需要申请物理地址，并复制过来
@@ -88,12 +103,17 @@ static void free_mem_child(PROCESS_0 *p_child) {
 		// 				pid,//要挂载的进程的pid，子进程的pid
 		// 				PG_P  | PG_USU | PG_RWW,//页目录属性，一般都为可读写
 		// 				PG_P  | PG_USU | PG_RWW);//页表属性，参数区是可读写的
-		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin&0xFFFFF000));			
+		assert(phy_exist(p_child->cr3, addr_lin));
+		do_free_4k(get_page_phy_addr(p_child->pid, addr_lin));			
+		lin_mapping_phy(addr_lin, 0, p_child->pid, PG_P  | PG_USU | PG_RWW,0);
 	}
 	u32 *cr3_table = (u32*)K_PHY2LIN(p_child->cr3);
-	for(int i = 0; i < num_4K; i++) {
-		do_free_4k(cr3_table[i]);
+	for(int i = 0; i < num_1K; i++) {
+		if(cr3_table[i]&1) { 
+			do_free_4k(cr3_table[i] & 0xFFFFF000);
+		}
 	}
+	memset(cr3_table,0, num_4K);
 	do_free_4k(p_child->cr3);
 }
 
@@ -107,6 +127,7 @@ kern_wait(int *wstatus)
 	PROCESS_0 *p_proc = &p_proc_current->task, *p_son;
 	struct son_node *son;
 	while(1){
+		disable_int();
 		// if(xchg(&p_proc->lock, 1)==1){
 		// 	// kprintf("w%d:r%d ",p_proc->pid,p_proc->pid);
 		// 	goto loop;
@@ -148,6 +169,7 @@ kern_wait(int *wstatus)
 		// xchg(&p_proc->lock, 0);
 		// printlock(p_proc->pid,p_proc->pid,'w');
 		// ENABLE_INT();
+		enable_int();
 loop:
 		// schedule();
 		sched();
@@ -186,6 +208,7 @@ find:
 	// xchg(&p_son->lock, 0);
 	// printlock(p_proc->pid,p_son->pid,'w');
 end:
+	enable_int();
 	// xchg(&p_proc->lock, 0);
 	// printlock(p_proc->pid,p_proc->pid,'w');
 	return ret;

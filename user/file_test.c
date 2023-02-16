@@ -1,13 +1,13 @@
-// #include "type.h"
-// #include "const.h"
-// #include "protect.h"
-// #include "string.h"
-// #include "proc.h"
-// #include "global.h"
-// #include "proto.h"
-// #include "stdio.h"
-// #include "vfs.h"
-// #include "assert.h"
+#include "type.h"
+#include "const.h"
+#include "protect.h"
+#include "string.h"
+#include "proc.h"
+#include "global.h"
+#include "proto.h"
+#include "stdio.h"
+#include "vfs.h"
+#include "assert.h"
 
 // #define MAX_CMD_LEN 256
 // char cmd_buf[MAX_CMD_LEN];
@@ -224,4 +224,5 @@
 
 int main() {
 	printf("hello world\n");
+	exit(0);
 }
