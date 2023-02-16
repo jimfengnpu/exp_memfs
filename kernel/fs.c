@@ -14,6 +14,8 @@
 #include "stdio.h"
 #include "assert.h"
 
+const int ORANGE_ON_RAM_DRV = PRIMARY_SLAVE;
+
 //added by xw, 18/8/28
 /* data */
 static struct inode* root_inode;
@@ -97,7 +99,8 @@ void init_fs()
 		memset(&inode_table[i], 0, sizeof(struct inode));
 	struct super_block * sb = super_block;						//deleted by mingxuan 2020-10-30
 	
-	int orange_dev = get_fs_dev(PRIMARY_MASTER, ORANGE_TYPE);	//added by mingxuan 2020-10-27
+	// int orange_dev = get_fs_dev(PRIMARY_MASTER, ORANGE_TYPE);	//added by mingxuan 2020-10-27
+	int orange_dev = get_fs_dev(ORANGE_ON_RAM_DRV, ORANGE_TYPE);
 
 	/* load super block of ROOT */
 	read_super_block(orange_dev);		// modified by mingxuan 2020-10-27
@@ -136,7 +139,8 @@ static void mkfs()
 	//local array, to substitute global fsbuf. added by xw, 18/12/27
 	char fsbuf[SECTOR_SIZE];
 
-	int orange_dev = get_fs_dev(PRIMARY_MASTER, ORANGE_TYPE);	//added by mingxuan 2020-10-27
+	// int orange_dev = get_fs_dev(PRIMARY_MASTER, ORANGE_TYPE);	//added by mingxuan 2020-10-27
+	int orange_dev = get_fs_dev(ORANGE_ON_RAM_DRV, ORANGE_TYPE);
 
 	/* get the geometry of ROOTDEV */
 	struct part_info geo;

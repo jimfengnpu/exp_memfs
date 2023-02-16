@@ -52,4 +52,3 @@ int ram_rdwt(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf) {
 	release(&ramdisk_lock);
 	return 0;
 }
-

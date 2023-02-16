@@ -116,6 +116,7 @@ STATE CopyFileIn(PCHAR sfilename,PCHAR dfilename);
 STATE CopyFileOut(PCHAR sfilename,PCHAR dfilename);
 STATE DeleteFile(const char *filename);
 STATE DeleteDir(const char *dirname);
+STATE LseekFile(int fd, int offset, int whence);
 STATE ListAll(PCHAR dirname,DArray *array);
 STATE IsFile(PCHAR path,PUINT tag);
 STATE GetFileLength(PCHAR filename,PDWORD length);
