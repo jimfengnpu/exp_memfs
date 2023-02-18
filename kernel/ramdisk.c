@@ -18,6 +18,8 @@ static char* p_ramdisk_root[RAMDISK_SIZE/num_4K];
 static struct spinlock ramdisk_lock;
 static int get_addr(int offset, char **addr) {
 	int idx = offset/num_4K;
+	*addr = 0;
+	if(idx >= RAMDISK_PGNUM)return 0;
 	*addr = p_ramdisk_root[idx] + offset % num_4K;
 	return num_4K*(idx + 1) - offset;
 }
@@ -26,6 +28,7 @@ void ramdisk_init() {
 	initlock(&ramdisk_lock, "ramdisk");
 	for(int i = 0;i < RAMDISK_PGNUM; i++) {
 		p_ramdisk_root[i] = (char*) K_PHY2LIN(do_malloc_4k());
+		memset(p_ramdisk_root[i], 0, num_4K);
 	}
 	hd_info[RAMDISK_DRV].open_cnt ++;
 	hd_info[RAMDISK_DRV].primary[0].base = 0;
@@ -41,10 +44,12 @@ int ram_rdwt(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf) {
 	while(bytes > 0) {
 		bytes_step = min(bytes, num_4K);
 		bytes_step = min(bytes_step, get_addr(pos, &addr));
-		if(io_type == DEV_READ) {
-			memcpy((void*)va2la(proc_nr, buf), (void*)addr, bytes_step);
-		}else if(io_type == DEV_WRITE) {
-			memcpy((void*)addr, (void*)va2la(proc_nr, buf), bytes_step);
+		if(addr){
+			if(io_type == DEV_READ) {
+				memcpy((void*)va2la(proc_nr, buf), (void*)addr, bytes_step);
+			}else if(io_type == DEV_WRITE) {
+				memcpy((void*)addr, (void*)va2la(proc_nr, buf), bytes_step);
+			}
 		}
 		pos += bytes_step;
 		bytes -= bytes_step;

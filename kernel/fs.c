@@ -14,7 +14,7 @@
 #include "stdio.h"
 #include "assert.h"
 
-const int ORANGE_ON_RAM_DRV = PRIMARY_SLAVE;
+const int ORANGE_ON_RAM_DRV = PRIMARY_MASTER;
 
 //added by xw, 18/8/28
 /* data */

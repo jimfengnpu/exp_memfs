@@ -56,9 +56,9 @@ int sys_fork()
 		/****************用户进程数+1****************************/
 		u_proc_sum += 1;
 
-		disp_color_str("[fork success:",0x72);
-		disp_color_str(p_proc_current->task.p_name,0x72);
-		disp_color_str("]",0x72);
+		// disp_color_str("[fork success:",0x72);
+		// disp_color_str(p_proc_current->task.p_name,0x72);
+		// disp_color_str("]",0x72);
 		
 		//anything child need is prepared now, set its state to ready. added by xw, 17/12/11
 		p_child->task.stat = READY;
@@ -218,6 +218,7 @@ static int fork_update_info(PROCESS* p_child)
 	//p_proc_current->task.info.ppid;		//当前父进程	
 	p_proc_current->task.info.child_p_num += 1; //子进程数量
 	p_proc_current->task.info.child_process[p_proc_current->task.info.child_p_num-1] = p_child->task.pid;//子进程列表
+	p_proc_current->task.info.text_p_sharedcnt++;
 	//p_proc_current->task.info.child_t_num;	//子线程数量
 	//p_proc_current->task.info.child_thread[NR_CHILD_MAX];//子线程列表	
 	//p_proc_current->task.text_hold;			//是否拥有代码
@@ -232,6 +233,7 @@ static int fork_update_info(PROCESS* p_child)
 	p_child->task.info.child_t_num = 0;	//子线程数量
 	//p_child->task.info.child_thread[NR_CHILD_MAX];//子线程列表	
 	p_child->task.info.text_hold = 0;			//是否拥有代码，子进程不拥有代码
+	p_child->task.info.text_p_sharedcnt = 0;
 	p_child->task.info.data_hold = 1;			//是否拥有数据，子进程拥有数据
 	
 	return 0;

@@ -31,8 +31,6 @@
 		"tuple": "c",
 		"utility": "c",
 		"algorithm": "c",
-		"chrono": "c",
-		"cstdio": "c"
 	},
 	"terminal.integrated.gpuAcceleration": "off",
 	"C_Cpp.errorSquiggles": "disabled"

@@ -96,7 +96,8 @@ typedef struct s_tree_info{//进程树记录，包括父进程，子进程，子
 	int child_p_num;	//子进程数量
 	int child_process[NR_CHILD_MAX];//子进程列表
 	int child_t_num;		//子线程数量
-	int child_thread[NR_CHILD_MAX];//子线程列表	
+	int child_thread[NR_CHILD_MAX];//子线程列表
+	int text_p_sharedcnt;	
 	int text_hold;			//是否拥有代码
 	int data_hold;			//是否拥有数据
 }TREE_INFO;

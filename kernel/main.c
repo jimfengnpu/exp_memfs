@@ -92,7 +92,7 @@ int kernel_main()
 
 	//hd_open(MINOR(ROOT_DEV));
 	hd_open(PRIMARY_MASTER);	//modified by mingxuan 2020-10-27
-	// ramdisk_init();
+	ramdisk_init();
 
 	init_vfs();		//added by mingxuan 2020-10-30
 	init_fs();
@@ -353,6 +353,7 @@ static int initialize_processes()
 		p_proc->task.info.child_t_num = 0;		//子线程数量
 		//p_proc->task.info.child_thread[NR_CHILD_MAX];//子线程列表	
 		p_proc->task.info.text_hold = 1;			//是否拥有代码
+		p_proc->task.info.text_p_sharedcnt = 0;
 		p_proc->task.info.data_hold = 1;			//是否拥有数据
 		
 		

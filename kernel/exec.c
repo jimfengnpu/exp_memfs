@@ -3,6 +3,7 @@
 *************************************************/
 #include "type.h"
 #include "const.h"
+#include "string.h"
 #include "protect.h"
 #include "string.h"
 #include "proc.h"
@@ -11,6 +12,7 @@
 #include "elf.h"
 #include "fs.h" //added by mingxuan 2019-5-19
 #include "vfs.h"
+#include "x86.h"
 
 
 
@@ -32,13 +34,13 @@ u32 sys_exec(char *path)
 	u32 err_temp;
 	
 	char* p_reg;	//point to a register in the new kernel stack, added by xw, 17/12/11
-
+	char name[MAX_PATH]; 
 	if( 0==path )
 	{
 		disp_color_str("exec: path ERROR!",0x74);
 		return -1;
 	}
-	
+	strcpy(name, path);
 	/*******************打开文件************************/
 	// u32 fd = open(path,"r");	//deleted by mingxuan 2019-5-19
 	u32 fd = do_vopen(path, O_RDWR);	//deleted by mingxuan 2019-5-19
@@ -51,20 +53,27 @@ u32 sys_exec(char *path)
 	// u32 fd = fake_open(path,"r");	//modified by xw, 18/5/30 
 	
 	/*************获取elf信息**************/
-	Echo_Ehdr = sys_kmalloc(sizeof(Elf32_Ehdr));
+	Echo_Ehdr = K_PHY2LIN(sys_kmalloc(sizeof(Elf32_Ehdr)));
 	read_Ehdr(fd, Echo_Ehdr, 0);
-	Echo_Phdr = sys_kmalloc(sizeof(Elf32_Phdr) * Echo_Ehdr->e_phnum);
+	//这里应该判一下是不是elf
+	char elf_magic[4] = {0x7f, 'E', 'L', 'F'};
+	if(strncmp((char*)Echo_Ehdr, elf_magic, 4)) {
+		disp_color_str("not an ELF\n", 0x74);
+		return -1;
+	}
+	Echo_Phdr = K_PHY2LIN(sys_kmalloc(sizeof(Elf32_Phdr) * Echo_Ehdr->e_phnum));
 	for (int i = 0 ; i < Echo_Ehdr->e_phnum ; i++)
 		read_Phdr(fd, Echo_Phdr + i, Echo_Ehdr->e_phoff + i * sizeof(Elf32_Phdr));
 		
 	/*************释放进程内存****************/
 	//目前还没有实现 思路是：数据、代码根据text_info和data_info属性决定释放深度，其余内存段可以完全释放
+	free_proc_page(&p_proc_current->task, 0);	//add 2023.2.17
 	
 	/*************根据elf的program复制文件信息**************/
 	if(-1==exec_load(fd,Echo_Ehdr,Echo_Phdr)) return -1;//使用了const指针传递
 
-	/*****************重新初始化该进程的进程表信息（包括LDT）、线性地址布局、进程树属性********************/	
-	exec_pcb_init(path);	
+	/*****************重新初始化该进程的进程表信息（包括LDT）、线性地址布局、进程树属性********************/
+	exec_pcb_init(name);	
 	
 	/***********************代码、数据、堆、栈***************************/
 	//代码、数据已经处理，将eip重置即可
@@ -94,14 +103,14 @@ u32 sys_exec(char *path)
 	
 	// real_close(fd);	//added by mingxuan 2019-5-23
 	do_vclose(fd);
-	if (Echo_Ehdr != NULL)
-		sys_free(Echo_Ehdr);
-	if (Echo_Phdr != NULL)
-		sys_free(Echo_Phdr);
+	if (Echo_Ehdr != (void*)KernelLinBase)
+		sys_free(K_LIN2PHY(Echo_Ehdr));
+	if (Echo_Phdr != (void*)KernelLinBase)
+		sys_free(K_LIN2PHY(Echo_Phdr));
 
-	//disp_color_str("\n[exec success:",0x72);//灰底绿字
-	//disp_color_str(path,0x72);//灰底绿字	
-	//disp_color_str("]",0x72);//灰底绿字
+	// disp_color_str("\n[exec success:",0x72);//灰底绿字
+	// disp_color_str(name,0x72);//灰底绿字	
+	// disp_color_str("]",0x72);//灰底绿字
 	return 0;
 }
 
@@ -243,6 +252,8 @@ static int exec_pcb_init(char* path)
 	//p_proc_current->task.info.child_process[NR_CHILD_MAX];//子进程列表
 	//p_proc_current->task.info.child_t_num = 0;		//子线程数量
 	//p_proc_current->task.info.child_thread[NR_CHILD_MAX];//子线程列表	
+	if(p_proc_current->task.info.ppid != -1)
+		proc_table[p_proc_current->task.info.ppid].task.info.text_p_sharedcnt--;
 	p_proc_current->task.info.text_hold = 1;			//是否拥有代码
 	p_proc_current->task.info.data_hold = 1;			//是否拥有数据
 	

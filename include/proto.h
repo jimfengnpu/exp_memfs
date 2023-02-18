@@ -145,4 +145,5 @@ void write_page_pte(	u32 TblPhyAddr,u32	AddrLin,u32 PhyAddr,u32 Attribute);
 u32 vmalloc(u32 size);
 int lin_mapping_phy(u32 AddrLin,u32 phy_addr,u32 pid,u32 pde_Attribute,u32 pte_Attribute);//edit by visual 2016.5.19
 void clear_kernel_pagepte_low();		//add by visual 2016.5.12
+void free_proc_page(PROCESS_0 *p_proc, int clear_kernel);
 

@@ -35,7 +35,7 @@ u8* buf;
 STATE state;
 File f_desc_table_fat[NR_FILE_DESC];
 
-static void load_disk();
+static void load_disk(int dev);
 static void mkfs_fat();
 int FAT_DRV = PRIMARY_MASTER;
 
@@ -336,6 +336,32 @@ STATE CloseFile(int fd)
 	return OK;
 }
 
+STATE LseekFile(int fd, int offset, int whence) {
+	int pos = p_proc_current->task.filp[fd]->fd_node.fd_file->off;
+	//int f_size = p_proc_current->task.filp[fd]->fd_inode->i_size; //deleted by mingxuan 2019-5-17
+	int f_size = p_proc_current->task.filp[fd]->fd_node.fd_file->size;
+
+	switch (whence) {
+	case SEEK_SET:
+		pos = offset;
+		break;
+	case SEEK_CUR:
+		pos += offset;
+		break;
+	case SEEK_END:
+		pos = f_size + offset;
+		break;
+	default:
+		return -1;
+		break;
+	}
+	if ((pos > f_size) || (pos < 0)) {
+		return -1;
+	}
+	p_proc_current->task.filp[fd]->fd_pos = pos;
+	p_proc_current->task.filp[fd]->fd_node.fd_file->off = pos;
+	return pos;
+}
 STATE OpenFile(const char *filename,int mode)
 {
 

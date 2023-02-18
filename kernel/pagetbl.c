@@ -10,6 +10,7 @@
 #include "global.h"
 #include "proto.h"
 #include "memman.h"
+#include "assert.h"
 
 // to determine if a page fault is reparable. added by xw, 18/6/11
 u32 cr2_save;
@@ -372,4 +373,80 @@ void clear_kernel_pagepte_low()
 	memset((void *)(K_PHY2LIN(KernelPageTblAddr)), 0, 4 * page_num);	     //从内核页目录中清除内核页目录项前8项
 	memset((void *)(K_PHY2LIN(KernelPageTblAddr + 0x1000)), 0, 4096 * page_num); //从内核页表中清除线性地址的低端映射关系
 	refresh_page_cache();
+}
+
+void free_proc_page(PROCESS_0 *p_proc, int clear_kernel) {
+	u32 addr_lin;
+	u32 phy_addr;
+	for(addr_lin = p_proc->memmap.text_lin_base ; addr_lin < p_proc->memmap.text_lin_limit ; addr_lin+=num_4K )
+	{
+		phy_addr = get_page_phy_addr(p_proc->pid, addr_lin);
+		if(phy_addr){
+			if(p_proc->info.text_hold && p_proc->info.text_p_sharedcnt == 0){//拥有代码且已经没有共享时，可以释放
+				// lin_mapping_phy(addr_lin,//线性地址
+				// 				get_page_phy_addr(ppid,addr_lin),//物理地址，为MAX_UNSIGNED_INT时，由该函数自动分配物理内存
+				// 				pid,//要挂载的进程的pid，子进程的pid
+				// 				PG_P  | PG_USU | PG_RWW,//页目录属性，一般都为可读写
+				// 				PG_P  | PG_USU | PG_RWR);//页表属性，代码是只读的
+				do_free_4k(phy_addr);
+			}
+			lin_mapping_phy(addr_lin, 0, p_proc->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
+	}
+
+	for(addr_lin = p_proc->memmap.data_lin_base ; addr_lin < p_proc->memmap.data_lin_limit ; addr_lin+=num_4K )
+	{	
+		phy_addr = get_page_phy_addr(p_proc->pid, addr_lin);
+		if(phy_addr){
+			do_free_4k(phy_addr);	
+			lin_mapping_phy(addr_lin, 0, p_proc->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
+	}
+	//复制保留内存，保留内存不共享，子进程需要申请物理地址，并复制过来
+	for(addr_lin = p_proc->memmap.vpage_lin_base ; addr_lin < p_proc->memmap.vpage_lin_limit ; addr_lin+=num_4K )
+	{		
+		phy_addr = get_page_phy_addr(p_proc->pid, addr_lin);
+		if(phy_addr){
+			do_free_4k(phy_addr);
+			lin_mapping_phy(addr_lin, 0, p_proc->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
+	}
+	
+	//复制堆，堆不共享，子进程需要申请物理地址，并复制过来
+	for(addr_lin = p_proc->memmap.heap_lin_base ; addr_lin < p_proc->memmap.heap_lin_limit ; addr_lin+=num_4K )
+	{	
+		phy_addr = get_page_phy_addr(p_proc->pid, addr_lin);
+		if(phy_addr){
+			do_free_4k(phy_addr);
+			lin_mapping_phy(addr_lin, 0, p_proc->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
+	}	
+	
+	//复制栈，栈不共享，子进程需要申请物理地址，并复制过来(注意栈的复制方向)
+	for(addr_lin = p_proc->memmap.stack_lin_base ; addr_lin > p_proc->memmap.stack_lin_limit ; addr_lin-=num_4K )
+	{
+		phy_addr = get_page_phy_addr(p_proc->pid, addr_lin);
+		if(phy_addr){
+			do_free_4k(phy_addr);		
+			lin_mapping_phy(addr_lin, 0, p_proc->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
+	}
+	
+	//复制参数区，参数区不共享，子进程需要申请物理地址，并复制过来
+	for(addr_lin = p_proc->memmap.arg_lin_base ; addr_lin < p_proc->memmap.arg_lin_limit ; addr_lin+=num_4K )
+	{
+		phy_addr = get_page_phy_addr(p_proc->pid, addr_lin);
+		if(phy_addr){
+			do_free_4k(phy_addr);			
+			lin_mapping_phy(addr_lin, 0, p_proc->pid, PG_P  | PG_USU | PG_RWW,0);
+		}
+	}
+	u32 *cr3_table = (u32*)K_PHY2LIN(p_proc->cr3);
+	int pde_limit = (clear_kernel)? num_1K: KernelLinBase/num_4M;
+	for(int i = 0; i < pde_limit; i++) {
+		if(cr3_table[i]&1) { 
+			do_free_4k(cr3_table[i] & 0xFFFFF000);
+		}
+		cr3_table[i] = 0;
+	}
 }

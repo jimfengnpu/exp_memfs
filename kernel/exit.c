@@ -17,6 +17,9 @@ void kern_exit(PROCESS_0 *p_proc, int exit_code)
 		proc_table[p_proc->info.child_process[i]].task.info.ppid = NR_K_PCBS;
 	}
 	p_proc->info.child_p_num = 0;
+	p_proc->info.text_p_sharedcnt = 0;
+	if(p_proc->info.text_hold == 0)
+		proc_table[p_proc->pid].task.info.text_p_sharedcnt --;
 	enable_int();
 	// 上锁修改exit code
 	// while (xchg(&p_proc->lock, 1) == 1)
@@ -37,7 +40,7 @@ void kern_exit(PROCESS_0 *p_proc, int exit_code)
 	// kprintf("e%d:%x ",p_proc->pid,exit_code);
 	// 在触发了调度之后这个进程在被回收之前永远无法被调度到
 	enable_int();
-	sched();
+	// sys_yield();
 
 	// ENABLE_INT();
 	// panic("exit failed!");

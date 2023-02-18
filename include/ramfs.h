@@ -3,9 +3,10 @@
 #include "type.h"
 #include "memman.h"
 // ramfs.h
-#define RAM_FS_CLUSTER_SIZE 0x1000						// 一个数据块 4k 字节(与一个页面大小一致) 
+#define RAM_FS_CLUSTER_SIZE 0x200						// 一个数据块 512 字节 
 // memman end 32M set enough space for fat(index)
-#define RAM_FS_NR_CLU (MEMEND / RAM_FS_CLUSTER_SIZE)	// 索引表项的大小(根据内存大小开辟足够大)
+// #define RAM_FS_NR_CLU (MEMEND / RAM_FS_CLUSTER_SIZE)	// 索引表项的大小(根据内存大小开辟足够大)
+// changed to adapt rw interface
 #define RF_MX_ENT_NAME	20
 
 // FAT_NO_HEAD(0(start) as root not 2)
@@ -18,8 +19,8 @@
 typedef struct{
 	char name[RF_MX_ENT_NAME];	// 文件(夹)名
 	u32 record_type;			// 类型: free/file/dir
-	u32 *size;					
-	u32 *link_cnt;
+	u32 size;					
+	u32 link_cnt;
 	u32 shared_cnt;
 	u32 start_cluster;			// 起始索引号
 } rf_inode, *p_rf_inode;
@@ -32,7 +33,7 @@ typedef union{
 
 typedef struct{
 	u32 next_cluster;   // next:下一块的索引号, 0表示当前为空闲, MAX_UNSIGNED_INT表示当前为最后一块(不存在下一块)
-	u32 addr;			// 内核高地址 
+	// u32 addr;			// 内核高地址 
 } rf_fat, *p_rf_fat;
 
 
@@ -40,7 +41,7 @@ typedef struct{
 #include "fs.h"
 #include "fs_misc.h"
 void init_ram_fs();
-p_rf_inode find_path(const char *path, p_rf_inode dir_rec, int flag, int find_type, p_rf_inode p_fa);
+p_rf_inode find_path(const char *path, int flag, int find_type, p_rf_inode p_fa);
 int rf_open(const char *path, int mode);
 int rf_close(int fd);
 int rf_read(int fd, void *buf, int length);

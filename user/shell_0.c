@@ -230,18 +230,18 @@ int cmd_parser() {
 	return -CMD_NOFOUND;
 }
 
-// void fake_shell() {
-// 	while (1)
-// 	{
-// 		memset(cmd_buf, 0, MAX_CMD_LEN);
-// 		get_cwd(tmp);
-// 		printf("\nminiOS:%s $ ",tmp);
-// 		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
-// 		{
-// 			cmd_parser();
-// 		}
-// 	}
-// }
+void fake_shell() {
+	while (1)
+	{
+		memset(cmd_buf, 0, MAX_CMD_LEN);
+		get_cwd(tmp);
+		printf("\nminiOS:%s $ ",tmp);
+		if (gets(cmd_buf) && strlen(cmd_buf) != 0)
+		{
+			cmd_parser();
+		}
+	}
+}
 
 // int cmd_dostr(char *str) {
 // 	strcpy(cmd_buf, str);
@@ -584,24 +584,24 @@ int cmd_parser() {
 // 	fake_shell();
 // }
 
-void fat_on_ram_easy_test() {
-	int fd = open("/fat0/test.txt", O_CREAT | O_RDWR);
-	lseek(fd, 0, SEEK_SET);
-	write(fd, "hello world", 11);
-	close(fd);
-	fd = open("/fat0/test.txt", O_RDWR);
-	char buf[1100];
-	read(fd, buf, 11);
-	buf[11] = '\0';
-	printf("read from fat0/test.txt: %s\n", buf);
-	close(fd);
-	if(strcmp(buf, "hello world") == 0) {
-		printf("fat_on_ram_easy_test pass!!!\n");
-	} else {
-		printf("fat_on_ram_easy_test failed!!!\n");
-		while(1);
-	}
-}
+// void fat_on_ram_easy_test() {
+// 	int fd = open("/fat0/test.txt", O_CREAT | O_RDWR);
+// 	lseek(fd, 0, SEEK_SET);
+// 	write(fd, "hello world", 11);
+// 	close(fd);
+// 	fd = open("/fat0/test.txt", O_RDWR);
+// 	char buf[1100];
+// 	read(fd, buf, 11);
+// 	buf[11] = '\0';
+// 	printf("read from fat0/test.txt: %s\n", buf);
+// 	close(fd);
+// 	if(strcmp(buf, "hello world") == 0) {
+// 		printf("fat_on_ram_easy_test pass!!!\n");
+// 	} else {
+// 		printf("fat_on_ram_easy_test failed!!!\n");
+// 		while(1);
+// 	}
+// }
 
 
 int main(int argc, char *argv[])
@@ -611,12 +611,12 @@ int main(int argc, char *argv[])
 	int stderr = open("dev_tty0", O_RDWR);
 	// fattest();
 	int wt = 0;
-	easytest();
-	all_a_test();
-	alphabet_copy_test();
-	rw_cmp_test();
-	ramfs2orange_test();
-	orange2ramfs_test();
+	// easytest();
+	// all_a_test();
+	// alphabet_copy_test();
+	// rw_cmp_test();
+	// ramfs2orange_test();
+	// orange2ramfs_test();
 	// fake_shell();
 	// fat_on_ram_easy_test();
 	while(1) {

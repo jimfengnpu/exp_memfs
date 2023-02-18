@@ -177,8 +177,8 @@ void initial()
 	strcat(full_name,INSTALL_FILENAME);
 	untar(full_name);
 
-	fat_on_ram_easy_test();
-	orange_on_ram_easy_test();
+	// fat_on_ram_easy_test();
+	// orange_on_ram_easy_test();
 	// while(1);
 
 	do_vclose(stdin);
