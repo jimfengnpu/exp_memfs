@@ -36,6 +36,10 @@ static void write_data(int clu, void* buf) {
 	rw_sector_sched(DEV_WRITE, ramfs_dev, (clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, p_proc_current->task.pid, buf);
 }
 
+static void sync_inode(p_rf_inode inode) {
+	rw_sector(DEV_WRITE, ramfs_dev, (inode->index/RF_NR_REC + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE+ (inode->index%RF_NR_REC)*sizeof(rf_inode), sizeof(rf_inode), p_proc_current->task.pid, inode);
+}
+
 static void read_data(int clu, void* buf) {
 	rw_sector_sched(DEV_READ, ramfs_dev, (clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, p_proc_current->task.pid, buf);
 }
@@ -102,6 +106,7 @@ static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 	rf_clu rec = {0};
 	strcpy(rec.entry[0].name, ".");
 	rec.entry[0].record_type = RF_D;
+	rec.entry[0].index = dir_clu * RF_NR_REC;
 	// rec->size = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 	// rec->link_cnt = (u32*)K_PHY2LIN(do_kmalloc(sizeof(u32)));
 	rec.entry[0].size = sizeof(rf_inode);
@@ -111,6 +116,7 @@ static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 		rec.entry[0].size += sizeof(rf_inode);
 		strcpy(rec.entry[1].name, "..");
 		rec.entry[1].record_type = RF_D;
+		rec.entry[1].index = dir_clu * RF_NR_REC;
 		rec.entry[1].size = parent_rec->size;
 		rec.entry[1].start_cluster = parent_rec->start_cluster;
 		rec.entry[1].link_cnt = parent_rec->link_cnt;
@@ -157,6 +163,7 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 	rec.entry[i].record_type = type;
 	u32 new_size = check_dir_size(dir_clu);
 	rec.entry[0].size = new_size;
+	rec.entry[i].index = dir_clu*RF_NR_REC + i;
 	if(p_fa != NULL) {
 		rec.entry[i].record_type = p_fa->record_type;
 		rec.entry[i].start_cluster = p_fa->start_cluster;
@@ -181,6 +188,7 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 		dir_rec->size = new_size;
 	}
 	clu_rec = dir_clu;
+	write_data(clu_rec, &rec);
 	return &rec.entry[i];
 }
 
@@ -202,11 +210,12 @@ void init_ram_fs()
 	disp_str("dev size: ");
 	disp_int(geo.size);
 	disp_str(" sectors\n");
-	RAM_FS_NR_CLU = geo.size/(RAM_FS_CLUSTER_SIZE + sizeof(rf_fat));
-	RAM_FS_DATA_CLU = (RAM_FS_NR_CLU*4 + RAM_FS_CLUSTER_SIZE)/RAM_FS_CLUSTER_SIZE;
+	RAM_FS_NR_CLU = geo.size * SECTOR_SIZE/(RAM_FS_CLUSTER_SIZE + sizeof(rf_fat));
+	RAM_FS_DATA_CLU = (RAM_FS_NR_CLU*sizeof(rf_fat) + RAM_FS_CLUSTER_SIZE)/RAM_FS_CLUSTER_SIZE;
 	//in syscall we can only use 3G~3G+128M so we init the two at the beginning
 	RF_FAT_ROOT = (p_rf_fat)K_PHY2LIN(do_kmalloc(sizeof(rf_fat) * RAM_FS_NR_CLU));
 	// RF_DATA_ROOT = (p_rf_clu)K_PHY2LIN(RAM_FS_DATA_BASE);
+	rw_sector(DEV_READ, ramfs_dev, 0, sizeof(rf_fat) * RAM_FS_NR_CLU, p_proc_current->task.pid, RF_FAT_ROOT);
 	rf_alloc_clu(0);
 	init_dir_record(0, NULL);
 }
@@ -232,7 +241,7 @@ p_rf_inode find_path(const char *path, int flag, int find_type, p_rf_inode p_fa)
 {
 	u32 dir_clu = 0;
 	char ent_name[RF_MX_ENT_NAME];
-	rf_inode dir_rec;
+	rf_inode dir_rec = {0};
 	int pathpos = 0, j, len = strlen(path);
 	while(pathpos < len) {
 		for(j = 0; pathpos < len;j++, pathpos++) {
@@ -455,6 +464,7 @@ int rf_write(int fd, const void *buf, int length)
 	pos += length;
 	p_proc_current->task.filp[fd]->fd_pos = pos;
 	if(pos > frec->size) frec->size = pos;
+	sync_inode(frec);
 	return length;
 }
 
@@ -609,9 +619,9 @@ int rf_link(const char *oldpath, const char *newpath)
 			return -1;
 		else {
 			old_inode_f->link_cnt++;
-			write_data(clu, &tmp);
+			sync_inode(old_inode_f);
 			debug_inode->link_cnt++;
-			write_data(clu_rec, &rec);
+			sync_inode(debug_inode);
 			return 0;
 		}
 	}

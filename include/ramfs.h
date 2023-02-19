@@ -19,6 +19,7 @@
 typedef struct{
 	char name[RF_MX_ENT_NAME];	// 文件(夹)名
 	u32 record_type;			// 类型: free/file/dir
+	u32 index;
 	u32 size;					
 	u32 link_cnt;
 	u32 shared_cnt;
