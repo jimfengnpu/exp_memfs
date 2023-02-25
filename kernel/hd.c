@@ -239,33 +239,35 @@ static void hd_rdwt_real(RWInfo *p)
 
 void hd_rdwt_sched(MESSAGE *p)
 {
-	RWInfo rwinfo;
+	RWInfo *rwinfo = (RWInfo*)K_PHY2LIN(sys_kmalloc(sizeof(RWInfo)));
+	MESSAGE *kp = (MESSAGE*)K_PHY2LIN(sys_kmalloc(sizeof(MESSAGE)));
 	struct memfree hdque_buf;
 	int size = p->CNT;
 	void *buffer;
-	
+	memcpy(kp, p, sizeof(MESSAGE));
 	buffer = (void*)K_PHY2LIN(sys_kmalloc(size));
-	rwinfo.msg = p;
-	rwinfo.kbuf = buffer;
-	rwinfo.proc = p_proc_current;
+	rwinfo->msg = kp;
+	rwinfo->kbuf = buffer;
+	rwinfo->proc = p_proc_current;
 	
 	if (p->type == DEV_READ) {
-		in_hd_queue(&hdque, &rwinfo);
+		in_hd_queue(&hdque, rwinfo);
 		p_proc_current->task.channel = &hdque;
 		p_proc_current->task.stat = SLEEPING;
 		sched();
-		memcpy(p->BUF, buffer, p->CNT);
+		memcpy(kp->BUF, buffer, p->CNT);
 	} else {
-		memcpy(buffer, p->BUF, p->CNT);
-		in_hd_queue(&hdque, &rwinfo);
+		memcpy(buffer, kp->BUF, p->CNT);
+		in_hd_queue(&hdque, rwinfo);
 		p_proc_current->task.channel = &hdque;
 		p_proc_current->task.stat = SLEEPING;
 		sched();
 	}
-	
 	hdque_buf.addr = K_LIN2PHY((u32)buffer);
 	hdque_buf.size = size;
 	sys_free(&hdque_buf);
+	do_free(K_LIN2PHY((u32)kp), sizeof(MESSAGE));
+	do_free(K_LIN2PHY((u32)rwinfo), sizeof(RWInfo));
 }
 
 void init_hd_queue(HDQueue *hdq)

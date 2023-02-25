@@ -88,7 +88,7 @@ void init_fileop_table()
     f_op_table[2].opendir = OpenDir;
     f_op_table[2].createdir = CreateDir;
     f_op_table[2].deletedir = DeleteDir;
-	// f_op_table[2].lseek = LseekFile;
+	f_op_table[2].lseek = LseekFile;
 
     // table[3] for ramfs
     f_op_table[3].create = rf_create;
