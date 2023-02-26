@@ -546,6 +546,7 @@ void GetNameFromRecord(Record record,PCHAR fullname)
 			fullname[j++]=record.extension[i];
 		}
 	}
+	fullname[j] = 0;
 	for(j=j-1;j>=0;j--)//去掉后面的空格
 	{
 		if(fullname[j]==' '||(fullname[j]=='.'&&j==point))
