@@ -590,7 +590,7 @@ STATE IsFile(PCHAR path,PUINT tag)
 
 void init_fs_fat() 
 {
-    disp_str("Initializing fat32 file system...  \n");
+    disp_str("Initializing fat32 file system...  ");
 	
 	buf = (u8*)K_PHY2LIN(sys_kmalloc(FSBUF_SIZE));
 
@@ -650,9 +650,9 @@ static void mkfs_fat() {
 	driver_msg.PROC_NR	= proc2pid(p_proc_current);
 	hd_ioctl(&driver_msg);
 
-	// disp_str("dev size: ");
-	// disp_int(geo.size);
-	// disp_str(" sectors\n");
+	disp_str("dev size: ");
+	disp_int(geo.size);
+	disp_str(" sectors\n");
 
     TotalSectors = geo.size;
 

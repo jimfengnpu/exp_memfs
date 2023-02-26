@@ -215,7 +215,7 @@ int (*cmd_table[CMD_NUM])() = {
 };
 
 int cmd_parser() {
-	printf("cmd_buf: %s\n", cmd_buf);
+	// printf("cmd_buf: %s\n", cmd_buf);
 	int i;
 	for (i = 0; i < CMD_NUM; i++)
 	{
@@ -653,15 +653,15 @@ void fat_on_ram_rw_cmp_test() {
 
 int main(int argc, char *argv[])
 {
-	int stdin = open("dev_tty0", O_RDWR);
-	int stdout = open("dev_tty0", O_RDWR);
-	int stderr = open("dev_tty0", O_RDWR);
+	// int stdin = open("dev_tty0", O_RDWR);
+	// int stdout = open("dev_tty0", O_RDWR);
+	// int stderr = open("dev_tty0", O_RDWR); fork will automatically copy stdin/stdout/stderr
 	// test on ramfs
-	easytest();
-	all_a_test();
-	alphabet_copy_test();
-	ramfs2orange_test();
-	orange2ramfs_test();
+	// easytest();
+	// all_a_test();
+	// alphabet_copy_test();
+	// ramfs2orange_test();
+	// orange2ramfs_test();
 	// test on fat32
 	fat_on_ram_easy_test();
 	fat_on_ram_all_a_test();

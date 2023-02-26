@@ -177,15 +177,9 @@ void initial()
 	strcat(full_name,INSTALL_FILENAME);
 	untar(full_name);
 
-	// fat_on_ram_easy_test();
-	// orange_on_ram_easy_test();
-	// while(1);
-
-	do_vclose(stdin);
-	do_vclose(stdout);
-	do_vclose(stderr);
-
-	// mod_test_RWSector();
+	// do_vclose(stdin);
+	// do_vclose(stdout);
+	// do_vclose(stderr);
 
 	int pid = fork();
 	if(!pid) {
