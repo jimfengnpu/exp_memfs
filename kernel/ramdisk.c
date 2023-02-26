@@ -17,6 +17,7 @@
 // #define RAMDISK_FS 		FAT32_TYPE
 static char* p_ramdisk_root[RAMDISK_SIZE/num_4K];
 static struct spinlock ramdisk_lock;
+
 static int get_addr(int offset, char **addr) {
 	int idx = offset/num_4K;
 	*addr = 0;
@@ -39,16 +40,16 @@ void ramdisk_init() {
 }
 
 int ram_rdwt(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf) {
-	acquire(&ramdisk_lock);
+	acquire(&ramdisk_lock); // 确保原子
 	char * addr;
 	int bytes_step;
 	while(bytes > 0) {
 		bytes_step = min(bytes, num_4K);
 		bytes_step = min(bytes_step, get_addr(pos, &addr));
 		if(addr){
-			if(io_type == DEV_READ) {
+			if(io_type == DEV_READ) { // read
 				memcpy((void*)va2la(proc_nr, buf), (void*)addr, bytes_step);
-			}else if(io_type == DEV_WRITE) {
+			}else if(io_type == DEV_WRITE) { // write
 				memcpy((void*)addr, (void*)va2la(proc_nr, buf), bytes_step);
 			}
 		}else{

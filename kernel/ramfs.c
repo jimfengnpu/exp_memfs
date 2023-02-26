@@ -25,23 +25,33 @@ extern struct file_desc f_desc_table[NR_FILE_DESC];
 static struct spinlock ramfs_lock;
 
 static void write_fat(int clu) {
-	rw_sector(DEV_WRITE, ramfs_dev, clu * sizeof(rf_fat), sizeof(rf_fat), p_proc_current->task.pid, (void*)RF_FAT_ROOT + clu);
+	rw_sector(DEV_WRITE, ramfs_dev, clu * sizeof(rf_fat), sizeof(rf_fat),
+	p_proc_current->task.pid, (void*)RF_FAT_ROOT + clu);
 }
 
 static void read_fat(int clu) {
-	rw_sector(DEV_WRITE, ramfs_dev, clu * sizeof(rf_fat), sizeof(rf_fat), p_proc_current->task.pid, (void*)RF_FAT_ROOT + clu);
+	rw_sector(DEV_WRITE, ramfs_dev, clu * sizeof(rf_fat), sizeof(rf_fat),
+	p_proc_current->task.pid, (void*)RF_FAT_ROOT + clu);
 }
 
+// 向ramdisk对应簇号写入数据
 static void write_data(int clu, void* buf) {
-	rw_sector_sched(DEV_WRITE, ramfs_dev, (clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, p_proc_current->task.pid, buf);
+	rw_sector_sched(DEV_WRITE, ramfs_dev, 
+	(clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, 
+	p_proc_current->task.pid, buf);
+}
+
+// 从ramdisk对应簇号读取数据
+static void read_data(int clu, void* buf) {
+	rw_sector_sched(DEV_READ, ramfs_dev, 
+	(clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, 
+	p_proc_current->task.pid, buf);
 }
 
 static void sync_inode(p_rf_inode inode) {
-	rw_sector(DEV_WRITE, ramfs_dev, (inode->index/RF_NR_REC + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE+ (inode->index%RF_NR_REC)*sizeof(rf_inode), sizeof(rf_inode), p_proc_current->task.pid, inode);
-}
-
-static void read_data(int clu, void* buf) {
-	rw_sector_sched(DEV_READ, ramfs_dev, (clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, p_proc_current->task.pid, buf);
+	rw_sector(DEV_WRITE, ramfs_dev, 
+	(inode->index/RF_NR_REC + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE+ (inode->index%RF_NR_REC)*sizeof(rf_inode), 
+	sizeof(rf_inode), p_proc_current->task.pid, inode);
 }
 
 static int rf_alloc_clu(int clu){
@@ -129,8 +139,8 @@ static p_rf_inode alloc_rf_inode(p_rf_inode tmp_inode) {
 	memcpy(ret_inode, tmp_inode, sizeof(rf_inode)); 
 	return ret_inode;
 }
-//对于文件夹,传入的size无用
-//dir_rec: 待写入的文件所在文件夹记录项(在上级目录文件数据中)
+// 对于文件夹,传入的size无用
+// dir_rec: 待写入的文件所在文件夹记录项(在上级目录文件数据中)
 // p_fa表示是否有父亲inode，若为NULL则创建，否则指向父亲
 static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entClu, u32 type, p_rf_inode p_fa)
 {
@@ -343,8 +353,7 @@ int rf_open(const char *pathname, int flags)
 		f_desc_table[i].fd_mode = flags;
 		f_desc_table[i].fd_pos = 0;
 	}
-	else
-	{
+	else{
 		return -ENOENT;
 	}
 	return fd;
@@ -534,7 +543,7 @@ int rf_open_dir(const char *dirname)
 	f_desc_table[i].flag = 1;
 	f_desc_table[i].fd_node.fd_ram = alloc_rf_inode(fd_ram);
 	f_desc_table[i].dev_index = VFS_INDEX_RAMFS;
-	f_desc_table[i].fd_mode = O_RDWR; // 应该是只读，但目前文件flag还不完善
+	f_desc_table[i].fd_mode = O_RDWR; 
 	f_desc_table[i].fd_pos = 0;
 	return fd;
 }
