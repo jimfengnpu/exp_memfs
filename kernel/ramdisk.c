@@ -13,8 +13,8 @@
 #define RAMDISK_SIZE	2*num_4M
 #define RAMDISK_SEC		RAMDISK_SIZE/SECTOR_SIZE
 #define RAMDISK_PGNUM	RAMDISK_SIZE/num_4K
-#define RAMDISK_FS		RAM_FS_TYPE
-// #define RAMDISK_FS 		FAT32_TYPE
+// #define RAMDISK_FS		RAM_FS_TYPE
+#define RAMDISK_FS 		FAT32_TYPE
 static char* p_ramdisk_root[RAMDISK_SIZE/num_4K];
 static struct spinlock ramdisk_lock;
 static int get_addr(int offset, char **addr) {
@@ -51,6 +51,8 @@ int ram_rdwt(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf) {
 			}else if(io_type == DEV_WRITE) {
 				memcpy((void*)addr, (void*)va2la(proc_nr, buf), bytes_step);
 			}
+		}else{
+			disp_color_str("read ramdisk overflow!", 0x74);
 		}
 		pos += bytes_step;
 		bytes -= bytes_step;

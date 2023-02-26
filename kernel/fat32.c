@@ -37,8 +37,8 @@ File f_desc_table_fat[NR_FILE_DESC];
 
 static void load_disk(int dev);
 static void mkfs_fat();
-int FAT_DRV = PRIMARY_MASTER;
-// int FAT_DRV = RAMDISK_DRV; // based on ramdisk
+// int FAT_DRV = PRIMARY_MASTER;
+int FAT_DRV = RAMDISK_DRV; // based on ramdisk
 
 STATE DeleteDir(const char *dirname)
 {
@@ -324,7 +324,7 @@ STATE CloseFile(int fd)
 	}else{
 		if(pfile->off<pfile->size)
 		{
-			GetFileOffset(pfile,&curSectorIndex,NULL,&isLastSector);
+			GetFileOffset(pfile,&curClusterIndex,NULL,&isLastSector);
 			if(isLastSector==0)
 			{
 				curSectorIndex=(curClusterIndex-Reserved_Sector-2*Sectors_Per_FAT)/Sectors_Per_Cluster+2;
