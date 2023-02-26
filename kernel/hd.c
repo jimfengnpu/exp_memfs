@@ -97,7 +97,7 @@ void hd_open(int drive)	//modified by mingxuan 2020-10-27
 
 	if (hd_info[drive].open_cnt++ == 0) {
 		partition(drive * (NR_PART_PER_DRIVE + 1), P_PRIMARY);
-		print_hdinfo(&hd_info[drive]);
+		// print_hdinfo(&hd_info[drive]);
 	}
 }
 
@@ -510,7 +510,7 @@ static void hd_identify(int drive)
 	interrupt_wait();
 	insw(REG_DATA, hdbuf, SECTOR_SIZE);
 
-	print_identify_info((u16*)hdbuf);
+	// print_identify_info((u16*)hdbuf);
 
 	u16* hdinfo = (u16*)hdbuf;
 

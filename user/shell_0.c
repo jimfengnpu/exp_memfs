@@ -15,7 +15,7 @@
 char cmd_buf[MAX_CMD_LEN];
 #define TMP_BUF_LEN 600
 char tmp[TMP_BUF_LEN];
-#define DATA_BUF_LEN 2505
+#define DATA_BUF_LEN 1020000
 char data_buf[DATA_BUF_LEN];
 
 int check_num = 0; // 每做一次check_expr，check_num就加1，以便快速定位错误
@@ -362,29 +362,29 @@ void fake_shell() {
 // 	return 0;
 // }
 
-// int test_write_times(char *filename, int tot_len) {
-// 	int start_ticks = get_ticks();
-// 	int fd = open(filename, O_CREAT | O_RDWR);
-// 	check_expr(fd >= 0); // 创建文件
-// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
-// 	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
-// 	check_expr(close(fd) >= 0); // 关闭文件
-// 	int end_ticks = get_ticks();
-// 	close(fd);
-// 	return end_ticks - start_ticks;
-// }
-// int test_read_times(char *filename, int tot_len) {
-// 	int start_ticks = get_ticks();
-// 	int fd = open(filename, O_RDWR);
-// 	check_expr(fd >= 0);
-// 	check_expr(lseek(fd, 0, SEEK_SET) >= 0);
-// 	check_expr(read(fd, data_buf, tot_len) == tot_len);
-// 	check_expr(close(fd) >= 0);
-// 	int end_ticks = get_ticks();
-// 	close(fd);
-// 	delete(filename);
-// 	return end_ticks - start_ticks;
-// }
+int test_write_times(char *filename, int tot_len) {
+	int start_ticks = get_ticks();
+	int fd = open(filename, O_CREAT | O_RDWR);
+	check_expr(fd >= 0); // 创建文件
+	check_expr(lseek(fd, 0, SEEK_SET) >= 0); // 将文件指针移动到文件开头
+	check_expr(write(fd, data_buf, strlen(data_buf)) == tot_len); // 写入tot_len个字符
+	check_expr(close(fd) >= 0); // 关闭文件
+	int end_ticks = get_ticks();
+	close(fd);
+	return end_ticks - start_ticks;
+}
+int test_read_times(char *filename, int tot_len) {
+	int start_ticks = get_ticks();
+	int fd = open(filename, O_RDWR);
+	check_expr(fd >= 0);
+	check_expr(lseek(fd, 0, SEEK_SET) >= 0);
+	check_expr(read(fd, data_buf, tot_len) == tot_len);
+	check_expr(close(fd) >= 0);
+	int end_ticks = get_ticks();
+	close(fd);
+	delete(filename);
+	return end_ticks - start_ticks;
+}
 // /*
 //  * 分别测试在ramfs和在orangefs上，写2e6 bytes的用时和读2e6 bytes的用时
 // **/
@@ -585,6 +585,7 @@ void fake_shell() {
 // }
 
 void fat_on_ram_easy_test() {
+	printf("fat_on_ram_easy_test start...\n");
 	int fd = open("/fat0/test.txt", O_CREAT | O_RDWR);
 	lseek(fd, 0, SEEK_SET);
 	write(fd, "hello world", 11);
@@ -603,6 +604,112 @@ void fat_on_ram_easy_test() {
 	}
 }
 
+int all_a_read_check(int fd, int len) {
+	// printf("read %d bytes from fd %d\n", len, fd);
+	int ret = read(fd, data_buf, len);
+	// printf("ret = %d\n", ret);
+	check_expr(ret == len);
+	// printf("check real data...\n");
+	for(int i = 0;i < len;i++) check_expr(data_buf[i] == 'a');
+	return 0;
+} 
+
+void fat_on_ram_all_a_test() {
+	printf("fat_on_ram_all_a_test start...\n");
+	for(int i = 0;i < 1e6;i++) data_buf[i] = 'a';
+	data_buf[1000000] = '\0';
+	check_expr(chdir("/fat0") >= 0);
+	int fd = -1;
+	fd = open("all_a.txt", O_CREAT | O_RDWR); check_expr(fd >= 0);
+	check_expr(fd >= 0);
+	check_expr(lseek(fd, 0, SEEK_SET) == 0);
+	int ret = -1;
+	printf("write 1e6 bytes to all_a.txt\n");
+	ret = write(fd, data_buf, strlen(data_buf)); 
+	printf("ret = %d\n", ret);
+	check_expr(ret == strlen(data_buf));
+	check_expr(close(fd) >= 0);
+	fd = open("all_a.txt", O_RDWR); check_expr(fd >= 0);
+	// 开头的测试
+	check_expr(lseek(fd, 0, SEEK_SET) >= 0);
+	all_a_read_check(fd, 1000);
+	// 中间的测试
+	check_expr(lseek(fd, 88888, SEEK_CUR) >= 0);
+	all_a_read_check(fd, 1000);
+	// 结尾的测试
+	check_expr(lseek(fd, -5000, SEEK_END) >= 0);
+	all_a_read_check(fd, 1000);
+	check_expr(close(fd) >= 0);
+	printf("fat_on_ram_all_a_test pass!!!\n");
+	return;
+}
+
+int alphabet_read_check(int fd, int pos, int len) {
+	printf("read %d bytes from fd %d at pos %d\n", len, fd, pos);
+	int ret = read(fd, data_buf, len);
+	// printf("ret = %d\n", ret);
+	check_expr(ret == len);
+	// printf("check real data...\n");
+	// printf("check num = %d\n", check_num);
+	// for(int i = 0;i < 10;i++) printf("data : %c, %c\n", data_buf[i], 'a' + (pos + i) % 26);
+	// printf("\n");
+	for(int i = 0;i < len;i++) check_expr(data_buf[i] == 'a' + (pos + i) % 26);
+	return 0;
+}
+
+void fat_on_ram_alphabet_test() {
+	printf("fat_on_ram_alphabet start...\n");
+	for(int i = 0;i < 1e5;i++) data_buf[i] = 'a' + i % 26;
+	data_buf[100000] = '\0';
+	check_expr(chdir("/fat0") >= 0);
+	int fd = -1;
+	fd = open("alpha.txt", O_CREAT | O_RDWR); check_expr(fd >= 0);
+	check_expr(fd >= 0);
+	check_expr(lseek(fd, 0, SEEK_SET) == 0);
+	int ret = -1;
+	printf("write %d bytes to alphabet.txt\n", strlen(data_buf));
+	ret = write(fd, data_buf, strlen(data_buf)); 
+	printf("ret = %d\n", ret);
+	check_expr(ret == strlen(data_buf));
+	check_expr(close(fd) >= 0);
+	fd = open("alpha.txt", O_RDWR); check_expr(fd >= 0);
+	// 开头的测试
+	check_expr(lseek(fd, 0, SEEK_SET) >= 0);
+	alphabet_read_check(fd, 0, 1000);
+	// 中间的测试
+	// check_expr(lseek(fd, 60060, SEEK_SET) >= 0);
+	// alphabet_read_check(fd, 60060, 1000);
+	check_expr(lseek(fd, 65551, SEEK_SET) >= 0);
+	alphabet_read_check(fd, 65551, 1000);
+	// 结尾的测试
+	// check_expr(lseek(fd, 66352, SEEK_SET) >= 0);
+	// alphabet_read_check(fd, 66352, 1000);
+	check_expr(lseek(fd, 65531, SEEK_SET) >= 0);
+	alphabet_read_check(fd, 65531, 1000);
+	printf("read finished\n");
+	check_expr(close(fd) >= 0);
+	printf("fat_on_ram_alphabet pass!!!\n");
+	return;
+}
+
+void fat_on_ram_rw_cmp_test() {
+	printf("fat_on_ram_rw_cmp_test start...\n");
+	int tot_len = 5e5;
+	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a' + i % 26;
+	data_buf[tot_len] = '\0';
+	int fat_on_ram_w = test_write_times("/fat0/rw_cmp.txt", tot_len),
+	    fat_on_ram_r = test_read_times("/fat0/rw_cmp.txt", tot_len);
+	int orange_w = test_write_times("/orange/rw_cmp.txt", tot_len),
+	    orange_r = test_read_times("/orange/rw_cmp.txt", tot_len);
+	// printf("fat on ram disk write 5e5 bytes to rw_cmp.txt %d times\n", fat_on_ram_w);
+	// printf("fat on ram disk read 5e5 bytes from rw_cmp.txt %d times\n", fat_on_ram_r);
+	printf("fat on hard disk write 5e5 bytes to rw_cmp.txt %d times\n", fat_on_ram_w);
+	printf("fat on hard disk read 5e5 bytes from rw_cmp.txt %d times\n", fat_on_ram_r);
+	printf("orange write 5e5 bytes to rw_cmp.txt %d times\n", orange_w);
+	printf("orange read 5e5 bytes from rw_cmp.txt %d times\n", orange_r);
+	printf("rw_cmp_test pass!!!\n");
+	return;
+}
 
 int main(int argc, char *argv[])
 {
@@ -610,7 +717,6 @@ int main(int argc, char *argv[])
 	int stdout = open("dev_tty0", O_RDWR);
 	int stderr = open("dev_tty0", O_RDWR);
 	// fattest();
-	int wt = 0;
 	// easytest();
 	// all_a_test();
 	// alphabet_copy_test();
@@ -618,7 +724,10 @@ int main(int argc, char *argv[])
 	// ramfs2orange_test();
 	// orange2ramfs_test();
 	// fake_shell();
-	fat_on_ram_easy_test();
+	// fat_on_ram_easy_test();
+	// fat_on_ram_all_a_test();
+	fat_on_ram_alphabet_test();
+	fat_on_ram_rw_cmp_test();
 	while(1) {
 		memset(cmd_buf, 0, MAX_CMD_LEN);
 		get_cwd(tmp);

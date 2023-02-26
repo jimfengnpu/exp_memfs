@@ -106,11 +106,11 @@ void init_fs()
 	read_super_block(orange_dev);		// modified by mingxuan 2020-10-27
 	sb = get_super_block(orange_dev); 	// modified by mingxuan 2020-10-27
 
-	kprintf("Superblock Address:0x%x \n", sb);
+	// kprintf("Superblock Address:0x%x \n", sb);
 
 	if(sb->magic != MAGIC_V1) {	//deleted by mingxuan 2019-5-20
 		mkfs();
-		kprintf("Make file system Done.\n");
+		// kprintf("Make file system Done.\n");
 		read_super_block(orange_dev);	// modified by mingxuan 2020-10-27
 	}
 
@@ -154,7 +154,7 @@ static void mkfs()
 	// send_recv(BOTH, dd_map[MAJOR(ROOT_DEV)].driver_nr, &driver_msg);
 	hd_ioctl(&driver_msg);
 
-	kprintf("dev size: 0x%x sectors\n", geo.size);
+	// kprintf("dev size: 0x%x sectors\n", geo.size);
 
 	/************************/
 	/*      super block     */
@@ -189,12 +189,12 @@ static void mkfs()
 	/* write the super block */
 	WR_SECT(orange_dev, 1, fsbuf);	// modified by mingxuan 2020-10-27
 
-	kprintf("devbase:0x%x00", (geo.base + 0) * 2);
-	kprintf(" sb:0x%x00", (geo.base + 1) * 2);
-	kprintf(" imap:0x%x00", (geo.base + 2) * 2);
-	kprintf(" smap:0x%x00\n", (geo.base + 2 + sb.nr_imap_sects) * 2);
-	kprintf("        inodes:0x%x00", (geo.base + 2 + sb.nr_imap_sects + sb.nr_smap_sects) * 2);
-	kprintf(" 1st_sector:0x%x00\n", (geo.base + sb.n_1st_sect) * 2);
+	// kprintf("devbase:0x%x00", (geo.base + 0) * 2);
+	// kprintf(" sb:0x%x00", (geo.base + 1) * 2);
+	// kprintf(" imap:0x%x00", (geo.base + 2) * 2);
+	// kprintf(" smap:0x%x00\n", (geo.base + 2 + sb.nr_imap_sects) * 2);
+	// kprintf("        inodes:0x%x00", (geo.base + 2 + sb.nr_imap_sects + sb.nr_smap_sects) * 2);
+	// kprintf(" 1st_sector:0x%x00\n", (geo.base + sb.n_1st_sect) * 2);
 
 	/************************/
 	/*       inode map      */

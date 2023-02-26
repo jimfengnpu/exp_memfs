@@ -399,27 +399,28 @@ int do_vwrite(int fd, const char *buf, int count) {
     //modified by mingxuan 2019-5-23
     char s[512];
     int index = p_proc_current->task.filp[fd]->dev_index;
-    const char *fsbuf = buf;
-    int f_len = count;
-    int bytes;
-    while(f_len)
-    {
-        int iobytes = min(512, f_len); // todo : avoid hard code
-        int i=0;
-        for(i=0; i<iobytes; i++)
-        {
-            s[i] = *fsbuf;
-            fsbuf++;
-        }
-        //bytes = device_table[index].op->write(fd,s,iobytes);
-        bytes = vfs_table[index].op->write(fd,s,iobytes);   //modified by mingxuan 2020-10-18
-        if(bytes != iobytes)
-        {
-            return bytes;
-        }
-        f_len -= bytes;
-    }
-    return count;
+    return vfs_table[index].op->write(fd, buf, count); 
+	// const char *fsbuf = buf;
+    // int f_len = count;
+    // int bytes;
+    // while(f_len)
+    // {
+    //     int iobytes = min(512, f_len); // todo : avoid hard code
+    //     int i=0;
+    //     for(i=0; i<iobytes; i++)
+    //     {
+    //         s[i] = *fsbuf;
+    //         fsbuf++;
+    //     }
+    //     //bytes = device_table[index].op->write(fd,s,iobytes);
+    //     bytes = vfs_table[index].op->write(fd,s,iobytes);   //modified by mingxuan 2020-10-18
+    //     if(bytes != iobytes)
+    //     {
+    //         return bytes;
+    //     }
+    //     f_len -= bytes;
+    // }
+    // return count;
 }
 
 int do_vunlink(const char *path) {

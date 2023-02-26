@@ -14,6 +14,7 @@
 #define RAMDISK_SEC		RAMDISK_SIZE/SECTOR_SIZE
 #define RAMDISK_PGNUM	RAMDISK_SIZE/num_4K
 #define RAMDISK_FS		RAM_FS_TYPE
+// #define RAMDISK_FS 		FAT32_TYPE
 static char* p_ramdisk_root[RAMDISK_SIZE/num_4K];
 static struct spinlock ramdisk_lock;
 static int get_addr(int offset, char **addr) {
@@ -34,7 +35,7 @@ void ramdisk_init() {
 	hd_info[RAMDISK_DRV].primary[0].base = 0;
 	hd_info[RAMDISK_DRV].primary[0].size = RAMDISK_SEC;
 	hd_info[RAMDISK_DRV].primary[0].fs_type = RAMDISK_FS;
-	print_hdinfo(&hd_info[RAMDISK_DRV]);
+	// print_hdinfo(&hd_info[RAMDISK_DRV]);
 }
 
 int ram_rdwt(int io_type, int dev, u64 pos, int bytes, int proc_nr, void* buf) {

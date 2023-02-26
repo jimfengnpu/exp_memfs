@@ -97,7 +97,7 @@ int kernel_main()
 	init_vfs();		//added by mingxuan 2020-10-30
 	init_fs();
 	init_fs_fat();	//added by mingxuan 2019-5-17
-	init_ram_fs();
+	// init_ram_fs();
 
 	// init_vfs();	//added by mingxuan 2019-5-17	//deleted by mingxuan 2020-10-30
 

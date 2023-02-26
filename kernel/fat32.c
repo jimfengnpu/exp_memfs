@@ -38,6 +38,7 @@ File f_desc_table_fat[NR_FILE_DESC];
 static void load_disk(int dev);
 static void mkfs_fat();
 int FAT_DRV = PRIMARY_MASTER;
+// int FAT_DRV = RAMDISK_DRV; // based on ramdisk
 
 STATE DeleteDir(const char *dirname)
 {
@@ -181,7 +182,7 @@ STATE ReadFile(int fd,void *buf, int length)
 		return ACCESSDENIED;
 	}
 	
-	disp_str("read:");
+	// disp_str("read:");
 	if(pfile->off>=pfile->size)
 	{
 		return 0;
@@ -219,6 +220,7 @@ STATE ReadFile(int fd,void *buf, int length)
 		pfile->off+=readsize;
 		if(tag==1)//最后一个扇区或缓冲区装满了
 		{
+			// kprintf("size:%d\n", size);
 			break;
 		}else{//缓冲区还没装满并且还没到最后一个扇区
 			GetNextSector(pfile,curSectorIndex,&nextSectorIndex,&isLastSector);
@@ -274,8 +276,15 @@ STATE WriteFile(int fd, const void *buf, int length)
 	}
 	GetFileOffset(pfile,&curSectorIndex,&off_in_sector,&isLastSector);
 	free_in_sector=Bytes_Per_Sector-off_in_sector;
+	int write_debug_info = 0;
+
+	// debug info
+	// kprintf("free_in_sector:%d\n", free_in_sector);
+	// kprintf("length:%d\n", length);
+	// kprintf("off_in_buf:%d\n", off_in_buf);
 	while(free_in_sector<length-off_in_buf)//当前扇区的空闲空间放不下本次要写入的内容
 	{
+		// kprintf("write_debug_info:%d\n", write_debug_info++);
 		ReadSector(sector,curSectorIndex);
 		memcpy(sector+off_in_sector,(void *)buf+off_in_buf,free_in_sector);
 		WriteSector(sector,curSectorIndex);
@@ -292,7 +301,8 @@ STATE WriteFile(int fd, const void *buf, int length)
 	pfile->off+=length-off_in_buf;
 	sys_free(sector);
 	//fflush(fp);
-	return OK;
+	// return OK;
+	return length;
 }
 
 STATE CloseFile(int fd)
@@ -379,8 +389,8 @@ STATE OpenFile(const char *filename,int mode)
 	GetNameFromPath(fullpath,name);
 
 	state=PathToCluster(parent,&parentCluster);
-	disp_str("\nstate=");
-	disp_int(state);
+	// disp_str("\nstate=");
+	// disp_int(state);
 	if(state!=OK)
 	{
 		return -1;
@@ -412,8 +422,8 @@ STATE OpenFile(const char *filename,int mode)
 	//~mingxuan 2019-5-19
 
 	state=ReadRecord(parentCluster,name,&record,NULL,NULL);
-	disp_str("state=");
-	disp_int(state);
+	// disp_str("state=");
+	// disp_int(state);
 	if(state!=OK)
 	{
 		disp_str("ReadRecord Fail!");
@@ -640,9 +650,9 @@ static void mkfs_fat() {
 	driver_msg.PROC_NR	= proc2pid(p_proc_current);
 	hd_ioctl(&driver_msg);
 
-	disp_str("dev size: ");
-	disp_int(geo.size);
-	disp_str(" sectors\n");
+	// disp_str("dev size: ");
+	// disp_int(geo.size);
+	// disp_str(" sectors\n");
 
     TotalSectors = geo.size;
 
