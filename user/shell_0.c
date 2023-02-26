@@ -59,11 +59,12 @@ int mkdir_u() {
 
 int touch_u() {
 	strcpy(tmp, cmd_buf+6);
-	int fd = create(tmp/*, O_RDWR | O_CREAT*/);
+	int fd = open(tmp, O_RDWR | O_CREAT);
 	if (fd == -1) {
 		printf("open failed\n");
 		return -1;
 	}
+	close(fd);
 	printf("touch %s finished\n", tmp);
 	close(fd);
 	return 0;
@@ -325,6 +326,7 @@ int all_a_test() {
 		check_expr(ret == 1); // 读取一个字符
 		check_expr(data_buf[0] == 'a'); // 检查读取的字符是否为'a'
 	}
+	check_expr(close(fd) == 0);
 	check_expr(delete("all_a") >= 0); // 删除文件
 	printf("all_a_test pass!!!\n");
 	return 0;
@@ -364,7 +366,7 @@ int alphabet_copy_test() {
 	cur_pos = 0;
 	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
 // 将文件指针移动到文件中间
-	check_expr(lseek(fd, 12133, SEEK_SET) >= 0);
+	check_expr(lseek(fd, 121323, SEEK_SET) >= 0);
 	cur_pos = 121323;
 	check_expr(check_alphabet(fd, &ret, &cur_pos) == 1);
 // 将文件指针移动到文件末尾
@@ -654,17 +656,17 @@ int main(int argc, char *argv[])
 	int stdin = open("dev_tty0", O_RDWR);
 	int stdout = open("dev_tty0", O_RDWR);
 	int stderr = open("dev_tty0", O_RDWR);
+	// test on ramfs
 	easytest();
-	// all_a_test();
-	// alphabet_copy_test();
-	// rw_cmp_test();
-	// ramfs2orange_test();
-	// orange2ramfs_test();
-	// fake_shell();
-	// fat_on_ram_easy_test();
-	// fat_on_ram_all_a_test();
-	// fat_on_ram_alphabet_test();
-	// fat_on_ram_rw_cmp_test();
+	all_a_test();
+	alphabet_copy_test();
+	ramfs2orange_test();
+	orange2ramfs_test();
+	// test on fat32
+	fat_on_ram_easy_test();
+	fat_on_ram_all_a_test();
+	fat_on_ram_alphabet_test();
+	fat_on_ram_rw_cmp_test();
 	while(1) {
 		memset(cmd_buf, 0, MAX_CMD_LEN);
 		get_cwd(tmp);
@@ -676,8 +678,10 @@ int main(int argc, char *argv[])
 				int status;
 				if(pid) {
 					wait(&status);
+					printf("\nExit with code%d", status);
 				}else{
-					exec(cmd_buf);
+					if(exec(cmd_buf) != 0)
+						printf("\nexec failed");
 				}
 			}
 		}

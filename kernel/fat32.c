@@ -37,8 +37,8 @@ File f_desc_table_fat[NR_FILE_DESC];
 
 static void load_disk(int dev);
 static void mkfs_fat();
-// int FAT_DRV = PRIMARY_MASTER;
-int FAT_DRV = RAMDISK_DRV; // based on ramdisk
+int FAT_DRV = PRIMARY_MASTER;
+// int FAT_DRV = RAMDISK_DRV; // based on ramdisk
 
 STATE DeleteDir(const char *dirname)
 {

@@ -30,28 +30,26 @@ static void write_fat(int clu) {
 }
 
 static void read_fat(int clu) {
-	rw_sector(DEV_WRITE, ramfs_dev, clu * sizeof(rf_fat), sizeof(rf_fat),
+	rw_sector(DEV_WRITE, ramfs_dev, clu * sizeof(rf_fat), sizeof(rf_fat), 
 	p_proc_current->task.pid, (void*)RF_FAT_ROOT + clu);
 }
 
 // 向ramdisk对应簇号写入数据
 static void write_data(int clu, void* buf) {
-	rw_sector_sched(DEV_WRITE, ramfs_dev, 
-	(clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, 
-	p_proc_current->task.pid, buf);
-}
-
-// 从ramdisk对应簇号读取数据
-static void read_data(int clu, void* buf) {
-	rw_sector_sched(DEV_READ, ramfs_dev, 
-	(clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, RAM_FS_CLUSTER_SIZE, 
-	p_proc_current->task.pid, buf);
+	rw_sector_sched(DEV_WRITE, ramfs_dev, (clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, 
+	RAM_FS_CLUSTER_SIZE, p_proc_current->task.pid, buf);
 }
 
 static void sync_inode(p_rf_inode inode) {
 	rw_sector(DEV_WRITE, ramfs_dev, 
-	(inode->index/RF_NR_REC + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE+ (inode->index%RF_NR_REC)*sizeof(rf_inode), 
-	sizeof(rf_inode), p_proc_current->task.pid, inode);
+			(inode->index/RF_NR_REC + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE + 
+			(inode->index%RF_NR_REC)*sizeof(rf_inode), 
+			sizeof(rf_inode), p_proc_current->task.pid, inode);
+}
+
+static void read_data(int clu, void* buf) {
+	rw_sector_sched(DEV_READ, ramfs_dev, (clu + RAM_FS_DATA_CLU)*RAM_FS_CLUSTER_SIZE, 
+	RAM_FS_CLUSTER_SIZE, p_proc_current->task.pid, buf);
 }
 
 static int rf_alloc_clu(int clu){
@@ -126,7 +124,7 @@ static void init_dir_record(int dir_clu, p_rf_inode parent_rec)
 		rec.entry[0].size += sizeof(rf_inode);
 		strcpy(rec.entry[1].name, "..");
 		rec.entry[1].record_type = RF_D;
-		rec.entry[1].index = dir_clu * RF_NR_REC;
+		rec.entry[1].index = dir_clu * RF_NR_REC + 1;
 		rec.entry[1].size = parent_rec->size;
 		rec.entry[1].start_cluster = parent_rec->start_cluster;
 		rec.entry[1].link_cnt = parent_rec->link_cnt;
@@ -344,6 +342,7 @@ int rf_open(const char *pathname, int flags)
 	p_rf_inode fd_ram = find_path(pathname, flags, RF_F, NULL);//from root
 	if(fd_ram) {
 		fd_ram->shared_cnt++;
+		sync_inode(fd_ram);
 		/* connects proc with file_descriptor */
 		p_proc_current->task.filp[fd] = &f_desc_table[i];
 		f_desc_table[i].flag = 1;
@@ -366,6 +365,7 @@ int rf_close(int fd)
 	}
 	if(p_proc_current->task.filp[fd]->fd_node.fd_ram->shared_cnt > 0)
 		p_proc_current->task.filp[fd]->fd_node.fd_ram->shared_cnt--;
+	sync_inode(p_proc_current->task.filp[fd]->fd_node.fd_ram);
 	do_free((u32)K_LIN2PHY(p_proc_current->task.filp[fd]->fd_node.fd_ram), sizeof(rf_inode));
 	p_proc_current->task.filp[fd]->fd_node.fd_ram = 0;
 	p_proc_current->task.filp[fd]->flag = 0;
@@ -558,7 +558,7 @@ int rf_delete(const char *filename)
 			return -1;
 		// do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
 		pREC->record_type = RF_NONE;
-		write_data(clu_rec, &rec);
+		sync_inode(pREC);
 		u32 clu = pREC->start_cluster;
 		rf_free_clu(clu);
 		return 0;
@@ -579,7 +579,7 @@ int rf_delete_dir(const char *dirname)
 			return -ENOTEMPTY;
 		}
 		pREC->record_type = RF_NONE;
-		write_data(clu_rec, &rec);
+		sync_inode(pREC);
 		u32 clu = pREC->start_cluster;
 		rf_free_clu(clu);
 		return 0;
@@ -597,7 +597,7 @@ int rf_unlink(const char *pathname)
 			return rf_delete(pathname);
 		prec_f->link_cnt--; 
 		prec_f->record_type = RF_NONE;
-		write_data(clu_rec, &rec);
+		sync_inode(prec_f);
 		return 0;
 	}
 	p_rf_inode prec_d = find_path(pathname, 0, RF_D, NULL);
@@ -606,7 +606,7 @@ int rf_unlink(const char *pathname)
 			return rf_delete_dir(pathname);
 		prec_d->link_cnt--;
 		prec_d->record_type = RF_NONE;
-		write_data(clu_rec, &rec);
+		sync_inode(prec_d);
 		return 0;
 	}
 	return -ENOENT;
