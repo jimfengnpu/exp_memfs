@@ -13,8 +13,8 @@
 #define RAMDISK_SIZE	2*num_4M
 #define RAMDISK_SEC		RAMDISK_SIZE/SECTOR_SIZE
 #define RAMDISK_PGNUM	RAMDISK_SIZE/num_4K
-// #define RAMDISK_FS		RAM_FS_TYPE
-#define RAMDISK_FS 		FAT32_TYPE
+#define RAMDISK_FS		RAM_FS_TYPE
+// #define RAMDISK_FS 		FAT32_TYPE
 static char* p_ramdisk_root[RAMDISK_SIZE/num_4K];
 static struct spinlock ramdisk_lock;
 static int get_addr(int offset, char **addr) {
