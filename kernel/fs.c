@@ -154,7 +154,7 @@ static void mkfs()
 	// send_recv(BOTH, dd_map[MAJOR(ROOT_DEV)].driver_nr, &driver_msg);
 	hd_ioctl(&driver_msg);
 
-	// kprintf("dev size: 0x%x sectors\n", geo.size);
+	kprintf("dev size: 0x%x sectors\n", geo.size);
 
 	/************************/
 	/*      super block     */

@@ -19,10 +19,10 @@
 typedef struct{
 	char name[RF_MX_ENT_NAME];	// 文件(夹)名
 	u32 record_type;			// 类型: free/file/dir
-	u32 index;
-	u32 size;					
-	u32 link_cnt;
-	u32 shared_cnt;
+	u32 index; 					// 序号
+	u32 size;					// 文件大小
+	u32 link_cnt;				// 链接数
+	u32 shared_cnt;				// 共享数
 	u32 start_cluster;			// 起始索引号
 } rf_inode, *p_rf_inode;
 #define RF_NR_REC (RAM_FS_CLUSTER_SIZE/sizeof(rf_inode)) // 每个数据块可容纳的inode数

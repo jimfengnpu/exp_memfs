@@ -216,6 +216,7 @@ int (*cmd_table[CMD_NUM])() = {
 
 int cmd_parser() {
 	// printf("cmd_buf: %s\n", cmd_buf);
+	// printf("cmd_buf: %s\n", cmd_buf);
 	int i;
 	for (i = 0; i < CMD_NUM; i++)
 	{
@@ -267,8 +268,7 @@ int easytest() {
 	strcpy(cmd_buf, "cd b"); check_expr(cmd_parser() >= 0);
 	strcpy(cmd_buf, "cd /ram/d"); check_expr(cmd_parser() < 0); 	// 检查访问不存在的目录
 	strcpy(cmd_buf, "cd /ram"); check_expr(cmd_parser() >= 0);
-	// 删除文件夹
-	strcpy(cmd_buf, "rm /ram/a"); check_expr(cmd_parser() >= 0);
+	strcpy(cmd_buf, "rm /ram/a"); check_expr(cmd_parser() >= 0);	// 删除文件夹
 	strcpy(cmd_buf, "rmdir /ram/b"); check_expr(cmd_parser() >= 0);
 	strcpy(cmd_buf, "rmdir /ram/c"); check_expr(cmd_parser() >= 0);
 	printf("easy_test pass!!!\n");
@@ -386,15 +386,17 @@ int test_read_times(char *filename, int tot_len) {
 	return end_ticks - start_ticks;
 }
 /*
- * 分别测试在ramfs和在orangefs上，写2e6 bytes的用时和读2e6 bytes的用时
+ * 分别测试在ramfs和在orangefs上，写5e5 bytes的用时和读2e6 bytes的用时
 **/
 int rw_cmp_test() {
 	// 准备数据
 	int tot_len = 5e5;
 	for(int i = 0;i < tot_len;i++) data_buf[i] = 'a'+(i%26);
 	data_buf[tot_len] = '\0';
-	int ram_w_5e5 = test_write_times("/ram/rw_cmp", tot_len), ram_r_5e5 = test_read_times("/ram/rw_cmp", tot_len);
-	int orange_w_5e5 = test_write_times("/orange/rw_cmp", tot_len), orange_r_5e5 = test_read_times("/orange/rw_cmp", tot_len);
+	int ram_w_5e5 = test_write_times("/ram/rw_cmp", tot_len), 
+	ram_r_5e5 = test_read_times("/ram/rw_cmp", tot_len);
+	int orange_w_5e5 = test_write_times("/orange/rw_cmp", tot_len), 
+	orange_r_5e5 = test_read_times("/orange/rw_cmp", tot_len);
 	printf("ramfs write %d bytes: %d ticks\n", tot_len, ram_w_5e5);
 	printf("ramfs read %d bytes: %d ticks\n", tot_len, ram_r_5e5);
 	printf("orangefs write %d bytes: %d ticks\n", tot_len, orange_w_5e5);
@@ -646,6 +648,10 @@ void ramfs_test_frame() {
 }
 
 void fat_on_ram_test_frame() {
+	// 请确定你已经阅读了Help.txt或者demo视频
+	// 以保证fat正确连接到ramdisk
+	printf("Please ensure that you have read the Help.txt or demo video!!!\n");
+	while(1);
 	// test on fat32
 	fat_on_ram_easy_test();
 	fat_on_ram_all_a_test();
@@ -655,11 +661,11 @@ void fat_on_ram_test_frame() {
 
 int main(int argc, char *argv[])
 {
-	int stdin = open("dev_tty0", O_RDWR);
-	int stdout = open("dev_tty0", O_RDWR);
-	int stderr = open("dev_tty0", O_RDWR);
+	// int stdin = open("dev_tty0", O_RDWR);
+	// int stdout = open("dev_tty0", O_RDWR);
+	// int stderr = open("dev_tty0", O_RDWR);
 
-	// ramfs_test_frame();
+	ramfs_test_frame();
 	// fat_on_ram_test_frame();
 
 	while(1) {

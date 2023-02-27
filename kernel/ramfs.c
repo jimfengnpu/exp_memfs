@@ -203,13 +203,13 @@ static p_rf_inode rf_write_record(p_rf_inode dir_rec, const char *name, u32 entC
 // 初始化ram文件系统
 void init_ram_fs()
 {
+	disp_str("Initializing RAMFS file system...  ");
 	ramfs_dev = get_fs_dev(RAMDISK_DRV, RAM_FS_TYPE);
 	/* get the geometry of ROOTDEV */
 	MESSAGE driver_msg;
 	struct part_info geo;
 	driver_msg.type		= DEV_IOCTL;
-	//driver_msg.DEVICE	= MINOR(FAT_DEV);	//deleted by mingxuan 2020-10-27
-	driver_msg.DEVICE	= MINOR(ramfs_dev);	//modified by mingxuan 2020-10-27
+	driver_msg.DEVICE	= MINOR(ramfs_dev);	
 
 	driver_msg.REQUEST	= DIOCTL_GET_GEO;
 	driver_msg.BUF		= &geo;
@@ -257,22 +257,23 @@ p_rf_inode find_path(const char *path, int flag, int find_type, p_rf_inode p_fa)
 			ent_name[j] = path[pathpos];
 		}
 		ent_name[j] = '\0';
-		// p_rf_inode rec = (p_rf_inode)(RF_FAT_ROOT[dir_clu].addr);
 		read_data(dir_clu, &rec);
 		int i;
 		for(i = 0; i < RF_NR_REC; i++) {
 			if(rec.entry[i].record_type == RF_NONE) continue;
-			if(pathpos < len && rec.entry[i].record_type == RF_D && strcmp(rec.entry[i].name, ent_name) == 0) {
+			if(rec.entry[i].record_type == RF_D)
 				rec.entry[i].size = check_dir_size(rec.entry[i].start_cluster);
+		}
+		write_data(dir_clu, &rec);
+		for(i = 0; i < RF_NR_REC; i++) {
+			if(rec.entry[i].record_type == RF_NONE) continue;
+			if(pathpos < len && rec.entry[i].record_type == RF_D && strcmp(rec.entry[i].name, ent_name) == 0) {
 				memcpy(&dir_rec, &rec.entry[i], sizeof(rf_inode));
-				write_data(dir_clu, &rec);
 				dir_clu = rec.entry[i].start_cluster;
 				break;
 			}
 			if(pathpos == len && rec.entry[i].record_type != RF_NONE && strcmp(rec.entry[i].name, ent_name) == 0) {
 				if(rec.entry[i].record_type == find_type) {
-					if(rec.entry[i].record_type == RF_D)
-						rec.entry[i].size = check_dir_size(rec.entry[i].start_cluster);
 					clu_rec = dir_clu;
 					return &rec.entry[i];
 				}
@@ -282,7 +283,6 @@ p_rf_inode find_path(const char *path, int flag, int find_type, p_rf_inode p_fa)
 		if(pathpos < len && i == RF_NR_REC) {
 			if(RF_FAT_ROOT[dir_clu].next_cluster == MAX_UNSIGNED_INT)
 				return NULL;
-			write_data(dir_clu, &rec);
 			dir_clu = RF_FAT_ROOT[dir_clu].next_cluster;
 			continue;
 		}

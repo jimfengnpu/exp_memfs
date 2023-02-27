@@ -97,7 +97,7 @@ void hd_open(int drive)	//modified by mingxuan 2020-10-27
 
 	if (hd_info[drive].open_cnt++ == 0) {
 		partition(drive * (NR_PART_PER_DRIVE + 1), P_PRIMARY);
-		// print_hdinfo(&hd_info[drive]);
+		print_hdinfo(&hd_info[drive]);
 	}
 }
 
