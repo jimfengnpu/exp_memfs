@@ -553,7 +553,7 @@ int rf_delete(const char *filename)
 	p_rf_inode pREC = find_path(filename, 0, RF_F, NULL);
 	if(pREC){
 		if(pREC->link_cnt >= 1)
-			return -1; // todo: wait errno
+			return -1; 
 		if(pREC->shared_cnt >= 1)
 			return -1;
 		// do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
@@ -572,7 +572,7 @@ int rf_delete_dir(const char *dirname)
 	p_rf_inode pREC = find_path(dirname, 0, RF_D, NULL);
 	if(pREC){
 		if(pREC->link_cnt >= 1)
-			return -1; // todo: wait errno
+			return -1;
 		// do_free(K_LIN2PHY((u32)pREC->size), sizeof(u32));
 		// do_free(K_LIN2PHY((u32)pREC->link_cnt), sizeof(u32));
 		if(check_dir_size(pREC->start_cluster) > 2*sizeof(rf_inode)) {

@@ -128,7 +128,7 @@ int ls_u() {
 	}
 	int fd = opendir(tmp);
 	readdir(fd, data_buf, DATA_BUF_LEN);
-	printf("%s\n", data_buf);
+	printf("%s", data_buf);
 	close(fd);
 	return 0; 
 }
@@ -215,7 +215,7 @@ int (*cmd_table[CMD_NUM])() = {
 };
 
 int cmd_parser() {
-	printf("cmd_buf: %s\n", cmd_buf);
+	// printf("cmd_buf: %s\n", cmd_buf);
 	int i;
 	for (i = 0; i < CMD_NUM; i++)
 	{
@@ -254,23 +254,6 @@ void fake_shell() {
 
 // 进行基本的功能测试
 int easytest() {
-	// check_expr(cmd_dostr("cd qweqw") < 0); // 测试用户输入的目录不存在
-	// check_expr(cmd_dostr("cd ram") >= 0);
-	// check_expr(cmd_dostr("touch a") >= 0);
-	// check_expr(cmd_dostr("write a hello world") == strlen("hello world"));
-	// check_expr(cmd_dostr("cat a") >= 0);
-	// check_expr(cmd_dostr("write a change") == strlen("change"));
-	// check_expr(cmd_dostr("cat a") >= 0);
-	// check_expr(cmd_dostr("cd /ram") >= 0);
-	// check_expr(cmd_dostr("mkdir b") >= 0);
-	// check_expr(cmd_dostr("mkdir c") >= 0);
-	// check_expr(cmd_dostr("cd b") >= 0);
-	// check_expr(cmd_dostr("cd /ram/d") < 0); 	// 检查访问不存在的目录
-	// check_expr(cmd_dostr("cd /ram") >= 0);
-	// // 删除文件夹
-	// check_expr(cmd_dostr("rm /ram/a") >= 0);
-	// check_expr(cmd_dostr("rmdir /ram/b") >= 0);
-	// check_expr(cmd_dostr("rmdir /ram/c") >= 0);
 	strcpy(cmd_buf, "cd qweqw"); check_expr(cmd_parser() < 0); // 测试用户输入的目录不存在
 	strcpy(cmd_buf, "cd ram"); check_expr(cmd_parser() >= 0);
 	strcpy(cmd_buf, "touch a"); check_expr(cmd_parser() >= 0);
@@ -641,8 +624,10 @@ void fat_on_ram_rw_cmp_test() {
 	    fat_on_ram_r = test_read_times("/fat0/rw_cmp.txt", tot_len);
 	int orange_w = test_write_times("/orange/rw_cmp.txt", tot_len),
 	    orange_r = test_read_times("/orange/rw_cmp.txt", tot_len);
-	printf("fat on ram disk write 5e5 bytes to rw_cmp.txt %d times\n", fat_on_ram_w);
-	printf("fat on ram disk read 5e5 bytes from rw_cmp.txt %d times\n", fat_on_ram_r);
+	printf("fat write 5e5 bytes to rw_cmp.txt %d times\n", fat_on_ram_w);
+	printf("fat read 5e5 bytes from rw_cmp.txt %d times\n", fat_on_ram_r);
+	// printf("fat on ram disk write 5e5 bytes to rw_cmp.txt %d times\n", fat_on_ram_w);
+	// printf("fat on ram disk read 5e5 bytes from rw_cmp.txt %d times\n", fat_on_ram_r);
 	// printf("fat on hard disk write 5e5 bytes to rw_cmp.txt %d times\n", fat_on_ram_w);
 	// printf("fat on hard disk read 5e5 bytes from rw_cmp.txt %d times\n", fat_on_ram_r);
 	printf("orange write 5e5 bytes to rw_cmp.txt %d times\n", orange_w);
@@ -651,22 +636,32 @@ void fat_on_ram_rw_cmp_test() {
 	return;
 }
 
-int main(int argc, char *argv[])
-{
-	int stdin = open("dev_tty0", O_RDWR);
-	int stdout = open("dev_tty0", O_RDWR);
-	int stderr = open("dev_tty0", O_RDWR);
+void ramfs_test_frame() {
 	// test on ramfs
 	easytest();
 	all_a_test();
 	alphabet_copy_test();
 	ramfs2orange_test();
-	orange2ramfs_test();
+	rw_cmp_test();
+}
+
+void fat_on_ram_test_frame() {
 	// test on fat32
 	fat_on_ram_easy_test();
 	fat_on_ram_all_a_test();
 	fat_on_ram_alphabet_test();
 	fat_on_ram_rw_cmp_test();
+}
+
+int main(int argc, char *argv[])
+{
+	int stdin = open("dev_tty0", O_RDWR);
+	int stdout = open("dev_tty0", O_RDWR);
+	int stderr = open("dev_tty0", O_RDWR);
+
+	// ramfs_test_frame();
+	// fat_on_ram_test_frame();
+
 	while(1) {
 		memset(cmd_buf, 0, MAX_CMD_LEN);
 		get_cwd(tmp);

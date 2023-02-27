@@ -402,7 +402,7 @@ STATE OpenFile(const char *filename,int mode)
 	{
 		if(state == NAMEEXIST) //文件存在，使用O_CREAT是多余的，继续执行OpenFile即可
 		{
-			disp_str("file exists, O_CREAT is no use!");
+			// disp_str("file exists, O_CREAT is no use!");
 		}
 		else //文件不存在，需要使用O_CREAT，先创建文件，再执行OpenFile
 		{
@@ -414,7 +414,7 @@ STATE OpenFile(const char *filename,int mode)
 	{
 		if(state != NAMEEXIST) //文件不存在，需要使用O_CREAT，用户没有使用，则报错并返回-1，表示路径有误
 		{
-			disp_str("no file, use O_CREAT!");
+			// disp_str("no file, use O_CREAT!");
 			return -1;
 		}
 		else{} //文件存在，使用O_CREAT是多余的，继续执行OpenFile即可
